@@ -3,7 +3,6 @@ package utils
 import (
 	"encoding/json"
 	"io/ioutil"
-	"log"
 
 	"github.com/luchojuarez/issue-assigner/models"
 	"github.com/luchojuarez/issue-assigner/services"
@@ -52,14 +51,12 @@ func load(githubBaseURL, configFilePath string) (*JsonConfig, error) {
 }
 
 func (this JsonConfig) loadRepos() error {
-	log.Printf("estos repos '%v'", this.RepoNames)
 
 	return nil
 }
 
 func (this JsonConfig) loadUsers() error {
 	for _, name := range this.UsersNicknames {
-		log.Printf("estos users '%s'", name)
 		newUser, err := this.UserService.GetUser(name)
 		if err != nil {
 			return err

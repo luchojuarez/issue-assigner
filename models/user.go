@@ -7,6 +7,3 @@ type User struct {
 	FetchedAt   time.Time
 	RequestTime int64
 }
-
-func foo() {
-}

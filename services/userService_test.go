@@ -69,7 +69,6 @@ func simpleStringResponderForGithubGetUser(user, responseBody string, statusCode
 		"https://api.github.com/users/"+user,
 		func(req *http.Request) (*http.Response, error) {
 			time.Sleep(responseLag * time.Millisecond)
-			log.Printf("puto el que llega")
 			resp := httpmock.NewStringResponse(statusCode, responseBody)
 
 			return resp, nil
