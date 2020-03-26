@@ -8,20 +8,24 @@ import (
 
 	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"
+
+	env "github.com/luchojuarez/issue-assigner/environment"
 )
 
 func TestGetAllPRSuccesCase(t *testing.T) {
 	httpmock.Reset()
+	env.GetEnv().ClearUserStorage()
 
 	// new service instance
 	service := NewPRService()
 
 	simpleStringResponderForPrSearch("luchojuarez/issuer", `[{"number": 1},{"number": 2}]`, 200, 0)
+	simpleStringResponderForGithubGetUser("luchojuarez", `{"login": "luchojuarez"}`, 200, 0)
 
 	simpleStringResponderForGetPR(1, "luchojuarez/issuer", `{"number": 1,"title":"Title 1","body":"description 1","assignees":null,"user":{"login":"luchojuarez"},"commits": 2,"additions": 353,  "deletions": 2}`, 200, 50)
 	simpleStringResponderForGetPR(2, "luchojuarez/issuer", `{"number": 2,"title":"Title 2","body":"description 2","assignees":[{"login":"luchojuarez"}],"user":{"login":"luchojuarez"},"commits": 2,"additions": 353,  "deletions": 2}`, 200, 40)
 
-	prList, err := service.GetOpenPRs("luchojuarez/issuer")
+	prList, _ := service.GetOpenPRs("luchojuarez/issuer")
 
 	assert.Equal(t, 2, len(prList))
 
@@ -41,6 +45,7 @@ func TestGetAllPRSuccesCase(t *testing.T) {
 
 func TestInvalidApiSCResponse2(t *testing.T) {
 	httpmock.Reset()
+	env.GetEnv().ClearPrStorage()
 
 	// new service instance
 	service := NewPRService()

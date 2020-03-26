@@ -3,6 +3,8 @@ package localEnvironment
 import (
 	"sync"
 
+	"github.com/luchojuarez/issue-assigner/models"
+
 	"github.com/go-resty/resty/v2"
 	"github.com/jarcoal/httpmock"
 )
@@ -14,6 +16,8 @@ var (
 
 type LocalEnvironment struct {
 	restClients map[string]*resty.Client
+	UserStorage map[string]*models.User
+	PrStorage   map[string][]*models.PR
 	IsTestEnv   bool
 }
 
@@ -25,13 +29,15 @@ func GetEnv() *LocalEnvironment {
 	if instance == nil {
 		instance = &LocalEnvironment{
 			restClients: make(map[string]*resty.Client),
+			UserStorage: make(map[string]*models.User),
+			PrStorage:   make(map[string][]*models.PR),
 			IsTestEnv:   true,
 		}
 	}
 	return instance
 }
 
-func (this LocalEnvironment) GetResty(name string) *resty.Client {
+func (this *LocalEnvironment) GetResty(name string) *resty.Client {
 	if this.restClients[name] == nil {
 		newResty := resty.New()
 
@@ -43,4 +49,20 @@ func (this LocalEnvironment) GetResty(name string) *resty.Client {
 		this.restClients[name] = newResty
 	}
 	return this.restClients[name]
+}
+
+func (this *LocalEnvironment) GetUserStorage() *map[string]*models.User {
+	return &this.UserStorage
+}
+
+func (this *LocalEnvironment) ClearUserStorage() {
+	this.UserStorage = make(map[string]*models.User)
+}
+
+func (this *LocalEnvironment) GetPrStorage() *map[string][]*models.PR {
+	return &this.PrStorage
+}
+
+func (this *LocalEnvironment) ClearPrStorage() {
+	this.PrStorage = make(map[string][]*models.PR)
 }

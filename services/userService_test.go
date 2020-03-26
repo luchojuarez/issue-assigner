@@ -14,21 +14,31 @@ import (
 
 func TestSuccesCase(t *testing.T) {
 	httpmock.Reset()
+	env.GetEnv().ClearUserStorage()
 
+	usersMap := env.GetEnv().GetUserStorage()
+	userReference := (*usersMap)["luchojuarez"]
+	if userReference != nil {
+		assert.Fail(t, "user found", userReference)
+	}
 	// new service instance
 	userService := NewUserService()
 
-	simpleStringResponderForGithubGetUser("luchojuarez", `{"login": "luchojuarez"}`, 200, 500)
+	simpleStringResponderForGithubGetUser("luchojuarez", `{"login": "luchojuarez"}`, 200, 0)
 
 	user, err := userService.GetUser("luchojuarez")
 	if err != nil {
 		log.Printf("esto trae el error %v", err)
 	}
 	assert.Equal(t, "luchojuarez", user.NickName)
+
+	userReference = (*usersMap)["luchojuarez"]
+	assert.NotNil(t, userReference, nil)
 }
 
 func TestInvalidJsonResponse(t *testing.T) {
 	httpmock.Reset()
+	env.GetEnv().ClearUserStorage()
 	// new service instance
 	userService := NewUserService()
 
@@ -61,22 +71,19 @@ func TestRestError(t *testing.T) {
 	assert.Equal(t, "Get https://api.github.com/users/luchojuarez: no responder found", err.Error())
 }
 
-func simpleStringResponderForGithubGetUser(user, responseBody string, statusCode int, responseLag time.Duration) {
-	httpmock.Reset()
-
-	httpmock.RegisterResponder(
-		"GET",
-		"https://api.github.com/users/"+user,
-		func(req *http.Request) (*http.Response, error) {
-			time.Sleep(responseLag * time.Millisecond)
-			resp := httpmock.NewStringResponse(statusCode, responseBody)
-
-			return resp, nil
-		})
-}
-
 var _ = ginkgo.AfterEach(func() {
 	log.Printf("After each")
 
 	httpmock.DeactivateAndReset()
 })
+
+func mockUserFromApi(nickname, responseBody string, statusCode int, responseLag time.Duration) {
+	httpmock.RegisterResponder(
+		"GET",
+		"https://api.github.com/users/"+nickname,
+		func(req *http.Request) (*http.Response, error) {
+			time.Sleep(responseLag * time.Millisecond)
+			resp := httpmock.NewStringResponse(statusCode, responseBody)
+			return resp, nil
+		})
+}

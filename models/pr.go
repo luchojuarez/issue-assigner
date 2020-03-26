@@ -12,6 +12,7 @@ type PR struct {
 	Title         string        `json:"title"`
 	Body          string        `json:"body"`
 	Assignees     []interface{} `json:"assignees"`
+	AssignedUsers []*User
 	AssigneesSize int
 	User          *User `json:"user"`
 	FetchedAt     time.Time
