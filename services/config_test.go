@@ -54,6 +54,9 @@ func TestInvalidJsonFile(t *testing.T) {
 
 func TestLoadUserError(t *testing.T) {
 	_, err := load("https://api.github.com", jsonResourcesPath+"user_no_exist.json")
+	if err == nil {
+		assert.Fail(t, "Error ist not null")
+	}
 	assert.Equal(t, "Get https://api.github.com/users/unknow_user: no responder found", tracerr.Unwrap(err).Error())
 }
 
