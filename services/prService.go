@@ -3,11 +3,11 @@ package services
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/luchojuarez/issue-assigner/dao"
 	env "github.com/luchojuarez/issue-assigner/environment"
 	"github.com/luchojuarez/issue-assigner/models"
 	"github.com/ztrue/tracerr"
@@ -25,7 +25,7 @@ type PRService struct {
 	UserServiceInstance *UserService
 	GithubBaseURL       string
 	TotalRequestTime    int64
-	FetchedPRsByRepo    *map[string][]*models.PR
+	dao                 dao.PrDaoInterface
 }
 type prSearchResult struct {
 	Number int `json:"number"`
@@ -35,41 +35,53 @@ type prSearchResponse []*prSearchResult
 func NewPRService() *PRService {
 	return &PRService{
 		RestClient:          env.GetEnv().GetResty("PRService"),
-		UserServiceInstance: NewUserService(),
-		FetchedPRsByRepo:    env.GetEnv().GetPrStorage(),
+		UserServiceInstance: NewUserService0(),
+		dao:                 dao.NewLocalPrDao(),
+	}
+}
+func NewPRService0(userDao dao.UserDaoInterface, prDao dao.PrDaoInterface) *PRService {
+	return &PRService{
+		RestClient:          env.GetEnv().GetResty("PRService"),
+		UserServiceInstance: NewUserService(userDao),
+		dao:                 prDao,
 	}
 }
 
 func (this *PRService) GetOpenPRs(fullRepoName string) ([]*models.PR, error) {
-	if (*this.FetchedPRsByRepo)[fullRepoName] == nil {
-		defer this.setEndTime(time.Now())
-		response, err := this.
-			RestClient.
-			R().
-			Get(fmt.Sprintf(getAllPrURL, fullRepoName))
+	prList, err := this.dao.GetPrByRepo(fullRepoName)
+	if err != nil {
+		return nil, err
+	}
+	if prList != nil {
+		return prList, nil
+	}
+	defer this.setEndTime(time.Now())
+	response, err := this.
+		RestClient.
+		R().
+		Get(fmt.Sprintf(getAllPrURL, fullRepoName))
+	if err != nil {
+		return nil, tracerr.Wrap(err)
+	}
+	if response.StatusCode() != http.StatusOK {
+		return nil, fmt.Errorf("invalid status code: '%d'", response.StatusCode())
+	}
+	searchResult := prSearchResponse{}
+	if err := json.Unmarshal([]byte(fmt.Sprintf("%s", response)), &searchResult); err != nil {
+		return nil, tracerr.Wrap(err)
+	}
+
+	toReturn := []*models.PR{}
+
+	for _, number := range searchResult {
+		newPr, err := this.getPrByNumber(fullRepoName, number.Number)
 		if err != nil {
 			return nil, tracerr.Wrap(err)
 		}
-		if response.StatusCode() != http.StatusOK {
-			return nil, fmt.Errorf("invalid status code: '%d'", response.StatusCode())
-		}
-		searchResult := prSearchResponse{}
-		if err := json.Unmarshal([]byte(fmt.Sprintf("%s", response)), &searchResult); err != nil {
-			return nil, tracerr.Wrap(err)
-		}
-
-		toReturn := []*models.PR{}
-
-		for _, number := range searchResult {
-			newPr, err := this.getPrByNumber(fullRepoName, number.Number)
-			if err != nil {
-				return nil, tracerr.Wrap(err)
-			}
-			toReturn = append(toReturn, newPr)
-		}
-		(*this.FetchedPRsByRepo)[fullRepoName] = toReturn
+		toReturn = append(toReturn, newPr)
+		this.dao.SavePr(fullRepoName, newPr)
 	}
-	return (*this.FetchedPRsByRepo)[fullRepoName], nil
+	return toReturn, nil
 }
 
 func (this *PRService) getPrByNumber(fullRepoName string, number int) (*models.PR, error) {
@@ -97,7 +109,7 @@ func (this *PRService) getPrByNumber(fullRepoName string, number int) (*models.P
 		userName := userMap["login"].(string)
 		fetchedUser, err := this.UserServiceInstance.GetUser(userName)
 		if err != nil {
-			log.Panicf("cat get user info '%s' '%v'", userName, err)
+			return nil, tracerr.New(fmt.Sprintf("cat get user info '%s' '%v'", userName, err))
 		}
 		// TODO is OK this calc?
 		fetchedUser.AssignedPRLines += newPr.Deletions + newPr.Additions
