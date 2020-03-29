@@ -75,7 +75,8 @@ func simpleStringResponderForGithubGetUser(user, responseBody string, statusCode
 func mockConfigSuccessCase() {
 	simpleStringResponderForGithubGetUser("luchojuarez", `{"login": "luchojuarez"}`, 200, 0)
 	simpleStringResponderForGithubGetUser("luchojuarez2", `{"login": "luchojuarez2"}`, 200, 0)
-	simpleStringResponderForPrSearch("luchojuarez/crypto", `[{"number": 1},{"number": 2}]`, 200, 0)
+	simpleStringResponderForGithubGetUser("user3", `{"login": "user3"}`, 200, 0)
+	simpleStringResponderForPrSearch("luchojuarez/crypto", `[{"number": 1},{"number": 2},{"number": 3},{"number": 4}]`, 200, 0)
 	simpleStringResponderForGetPR(1, "luchojuarez/crypto", `{"number": 1,"title":"Title 1","body":"description 1","assignees":[{"login":"luchojuarez"}],"user":{"login":"luchojuarez"},"commits": 2,"additions": 353,  "deletions": 2}`, 200, 0)
 	simpleStringResponderForGetPR(2, "luchojuarez/crypto", `{"number": 1,"title":"Title 2","body":"description 2","assignees":[{"login":"luchojuarez2"}],"user":{"login":"luchojuarez2"},"commits": 2,"additions": 7,  "deletions": 89}`, 200, 0)
 

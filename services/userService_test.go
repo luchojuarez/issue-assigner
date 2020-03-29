@@ -161,7 +161,7 @@ func mockUserFromApi(nickname, responseBody string, statusCode int, responseLag 
 }
 
 func assertNil(t *testing.T, object interface{}, msgAndArgs ...interface{}) {
-	if isNil(object) {
+	if !isNil(object) {
 		assert.Fail(t, "Expected value must be nil.", msgAndArgs...)
 	}
 	return
