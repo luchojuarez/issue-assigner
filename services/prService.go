@@ -111,8 +111,7 @@ func (this *PRService) getPrByNumber(fullRepoName string, number int) (*models.P
 		if err != nil {
 			return nil, tracerr.New(fmt.Sprintf("cat get user info '%s' '%v'", userName, err))
 		}
-		// TODO is OK this calc?
-		fetchedUser.AssignedPRLines += newPr.Deletions + newPr.Additions
+		fetchedUser.AssingPR(&newPr)
 		newPr.AssignedUsers = append(newPr.AssignedUsers, fetchedUser)
 	}
 

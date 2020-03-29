@@ -1,5 +1,5 @@
 {
-  "repos":["luchojuarez/crypto","luchojuarez/issue"],
+  "repos_full_names":["luchojuarez/crypto","luchojuarez/issue"],
   "users_niknames":["user1","user2","user3","user4"],
   "github_token":"token foo"
 }
