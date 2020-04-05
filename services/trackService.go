@@ -19,8 +19,9 @@ func TraceError(message string) {
 	trace(message, models.LevelError, nil)
 }
 
-func TraceError0(err error) {
+func TraceError0(err error) error {
 	trace(err.Error(), models.LevelError, err)
+	return err
 }
 
 func TraceErrorf(format string, arguments ...interface{}) {
@@ -29,6 +30,10 @@ func TraceErrorf(format string, arguments ...interface{}) {
 
 func TraceInfo(message string) {
 	trace(message, models.LevelInfo, nil)
+}
+
+func TraceInfof(format string, arguments ...interface{}) {
+	TraceInfo(fmt.Sprintf(format, arguments...))
 }
 
 func PrintAndClear(logFileName string) error {

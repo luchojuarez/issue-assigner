@@ -2,6 +2,7 @@ package services
 
 import (
 	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 
@@ -12,11 +13,13 @@ import (
 )
 
 func TestSimpleTrace(t *testing.T) {
+	env.GetEnv().CleanAll()
+	echoFile("../out/out.log")
 	TraceInfo("init...")
 	TraceInfo("other")
 	TraceErrorf("%s,%s %d", "format", "error", 1)
-	_, err := load("https://api.github.com", jsonResourcesPath+"invalid.json")
-	TraceError0(err)
+	//generate error "invalid character 'n' looking for beginning of object key string"
+	load("https://api.github.com", jsonResourcesPath+"invalid.json")
 
 	if err := PrintAndClear("out.log"); err != nil {
 		tracerr.Print(err)
@@ -31,4 +34,10 @@ func TestSimpleTrace(t *testing.T) {
 	assert.True(t, strings.Contains(logAsArray[2], "format,error 1"))
 	assert.True(t, strings.Contains(logAsArray[3], "invalid character 'n' looking for beginning of object key string"))
 	assert.Equal(t, logAsArray[4], "")
+}
+
+func echoFile(file string) {
+	f, _ := os.Create(file)
+	f.WriteString("")
+	f.Close()
 }

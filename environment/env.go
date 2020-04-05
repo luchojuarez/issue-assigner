@@ -84,6 +84,10 @@ func (this *LocalEnvironment) GetAllEvents() *[]*models.Event {
 	return &this.EventTraceStorage
 }
 
+func (this *LocalEnvironment) CleanAll() {
+	instance = nil
+}
+
 func (this *LocalEnvironment) ClearEventTracer() {
 	lock.Lock()
 	defer lock.Unlock()

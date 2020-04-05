@@ -33,7 +33,7 @@ func load(githubBaseURL, configFilePath string) (*JsonConfig, error) {
 	// read main config file
 	file, err := ioutil.ReadFile(configFilePath)
 	if err != nil {
-		return nil, tracerr.Wrap(err)
+		return nil, TraceError0(tracerr.Wrap(err))
 	}
 	newConfig := JsonConfig{
 		UserService: NewUserService0(),
@@ -41,16 +41,16 @@ func load(githubBaseURL, configFilePath string) (*JsonConfig, error) {
 	}
 	// unmarshalling data...
 	if err = json.Unmarshal([]byte(file), &newConfig); err != nil {
-		return nil, tracerr.Wrap(err)
+		return nil, TraceError0(tracerr.Wrap(err))
 	}
 
 	// load user info
 	if err := newConfig.loadUsers(); err != nil {
-		return nil, tracerr.Wrap(err)
+		return nil, TraceError0(tracerr.Wrap(err))
 	}
 	// load repository info
 	if err := newConfig.loadRepos(); err != nil {
-		return nil, tracerr.Wrap(err)
+		return nil, TraceError0(tracerr.Wrap(err))
 	}
 
 	return &newConfig, nil

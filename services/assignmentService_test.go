@@ -6,10 +6,14 @@ import (
 
 	"github.com/luchojuarez/issue-assigner/models"
 
+	env "github.com/luchojuarez/issue-assigner/environment"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSuccesRun(t *testing.T) {
+	env.GetEnv().CleanAll()
+	echoFile("../out/out.log")
 	mockConfigSuccessCase()
 	mockPRWhit2Reviwers()
 	assignmentService, _ := NewAssignmentService(jsonResourcesPath + "config_test.json")
@@ -28,6 +32,7 @@ func TestSuccesRun(t *testing.T) {
 	for _, pr := range prNeedsReviwes {
 		assert.Equal(t, assignmentService.config.ReviewersPerPR, len(pr.AssignedUsers))
 	}
+	PrintAndClear("success_run")
 }
 
 func TestInvalidJsonInput(t *testing.T) {

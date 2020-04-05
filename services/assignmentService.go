@@ -1,8 +1,6 @@
 package services
 
 import (
-	"log"
-
 	"github.com/luchojuarez/issue-assigner/models"
 )
 
@@ -39,5 +37,5 @@ func (this *AssignmentService) Run() {
 func (this *AssignmentService) assingn(user *models.User, pull *models.PR, repo *models.Repo) {
 	user.AssingPR(pull)
 	pull.AssignedUsers = append(pull.AssignedUsers, user)
-	log.Printf("Assing from repo:'%s', PR(%d) '%s' to user '%s'", repo.FullName, pull.Number, pull.Body, user.NickName)
+	TraceInfof("Assing from repo:'%s', PR(%d) '%s' to user '%s'", repo.FullName, pull.Number, pull.Body, user.NickName)
 }
