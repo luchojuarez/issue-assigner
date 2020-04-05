@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -54,7 +55,7 @@ func TestInvalidApiSCResponse2(t *testing.T) {
 
 	_, err := service.GetOpenPRs("luchojuarez/issuer")
 
-	assert.Equal(t, "invalid status code: '500'", err.Error())
+	assert.True(t, strings.Contains(err.Error(), "invalid status code: '500'"))
 }
 
 func TestRestErrorListAll(t *testing.T) {
@@ -80,7 +81,7 @@ func TestRestErrorGetPR(t *testing.T) {
 
 	_, err := service.GetOpenPRs("luchojuarez/issuer")
 
-	assert.Equal(t, "invalid status code: '500'", err.Error())
+	assert.True(t, strings.Contains(err.Error(), "invalid status code: '500'"))
 }
 
 func TestInvalidJson(t *testing.T) {
@@ -90,13 +91,13 @@ func TestInvalidJson(t *testing.T) {
 	httpmock.Reset()
 	simpleStringResponderForPrSearch("luchojuarez/issuer", `[{"number": 1,{"number": 2}]`, 500, 0)
 	_, err := service.GetOpenPRs("luchojuarez/issuer")
-	assert.Equal(t, "invalid status code: '500'", err.Error())
+	assert.True(t, strings.Contains(err.Error(), "invalid status code: '500'"))
 
 	httpmock.Reset()
 	simpleStringResponderForPrSearch("luchojuarez/issuer", `[{"number": 1},{"number": 2}]`, 500, 0)
 	simpleStringResponderForGetPR(1, "luchojuarez/issuer", `{number": 1,"title":"Title 1","body":"description 1","assignees":null,"user":{"login":"luchojuarez"},"commits": 2,"additions": 353,  "deletions": 2}`, 200, 50)
 	_, err = service.GetOpenPRs("luchojuarez/issuer")
-	assert.Equal(t, "invalid status code: '500'", err.Error())
+	assert.True(t, strings.Contains(err.Error(), "invalid status code: '500'"))
 }
 
 func simpleStringResponderForPrSearch(repoFullName, responseBody string, statusCode int, responseLag time.Duration) {

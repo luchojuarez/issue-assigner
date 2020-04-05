@@ -62,7 +62,7 @@ func (this UserService) getUser(nickname string) (*models.User, error) {
 	}
 
 	if response.StatusCode() != http.StatusOK {
-		return nil, tracerr.Errorf("invalid status code: '%d'", response.StatusCode())
+		return nil, tracerr.Errorf("invalid status code: '%d' for resource '%s'", response.StatusCode(), this.GithubBaseURL+"/users/"+nickname)
 	}
 
 	var newUser models.User
@@ -77,6 +77,9 @@ func (this UserService) getUser(nickname string) (*models.User, error) {
 	return &newUser, nil
 }
 
+//This func calculate ondeman the sorted list.
+// each time this function is called, the result will be calculated
+// from users in cache defined in dao.GetAllCached().
 func (this *UserService) GetSortedUsersByAssignations() []*models.User {
 	userList := []*models.User{}
 	for _, u := range *this.dao.GetAllCached() {

@@ -6,4 +6,11 @@ type Repo struct {
 	Description   string `json:"description"`
 	Contributors  []*User
 	Collaborators []*User
+	PullRequests  []*PR
+}
+
+func NewRepo(fullName string) Repo {
+	return Repo{
+		FullName: fullName,
+	}
 }
