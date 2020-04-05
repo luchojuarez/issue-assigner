@@ -3,7 +3,6 @@ package services
 import (
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	env "github.com/luchojuarez/issue-assigner/environment"
@@ -11,16 +10,13 @@ import (
 	"github.com/ztrue/tracerr"
 )
 
-const (
-	logPath = "../out"
-)
-
 func TraceError(message string) {
 	trace(message, models.LevelError, nil)
 }
 
-func TraceError0(err error) {
+func TraceError0(err error) error {
 	trace(err.Error(), models.LevelError, err)
+	return err
 }
 
 func TraceErrorf(format string, arguments ...interface{}) {
@@ -31,9 +27,16 @@ func TraceInfo(message string) {
 	trace(message, models.LevelInfo, nil)
 }
 
+func TraceInfof(format string, arguments ...interface{}) {
+	TraceInfo(fmt.Sprintf(format, arguments...))
+}
+func PrintAndClearWhithBeginTime(logFileName string, startTime time.Time) error {
+	TraceInfof("End at (%s) total millis: %d", startTime.Format(time.ANSIC), (time.Now().UnixNano()-startTime.UnixNano())/int64(time.Millisecond))
+	return PrintAndClear(logFileName)
+}
 func PrintAndClear(logFileName string) error {
 	defer env.GetEnv().ClearEventTracer()
-	return printToFile(fmt.Sprintf("%s/%s.log", logPath, strings.Split(logFileName, ".")[0]))
+	return printToFile(logFileName)
 }
 
 func printToFile(filename string) error {

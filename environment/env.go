@@ -1,6 +1,8 @@
 package localEnvironment
 
 import (
+	"os"
+	"strings"
 	"sync"
 
 	"github.com/luchojuarez/issue-assigner/models"
@@ -33,7 +35,7 @@ func GetEnv() *LocalEnvironment {
 			UserStorage:       make(map[string]*models.User),
 			PrStorage:         make(map[string][]*models.PR),
 			EventTraceStorage: make([]*models.Event, 0),
-			IsTestEnv:         true,
+			IsTestEnv:         false,
 		}
 	}
 	return instance
@@ -43,8 +45,7 @@ func (this *LocalEnvironment) GetResty(name string) *resty.Client {
 	if this.restClients[name] == nil {
 		newResty := resty.New()
 
-		// TODO don't do this in production
-		if this.IsTestEnv {
+		if IsTestEnv() {
 			httpmock.ActivateNonDefault(newResty.GetClient())
 			httpmock.Activate()
 		}
@@ -88,4 +89,8 @@ func (this *LocalEnvironment) ClearEventTracer() {
 	lock.Lock()
 	defer lock.Unlock()
 	this.EventTraceStorage = make([]*models.Event, 0)
+}
+
+func IsTestEnv() bool {
+	return strings.Contains(os.Args[0], ".test")
 }

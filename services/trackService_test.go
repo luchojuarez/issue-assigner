@@ -6,24 +6,23 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/ztrue/tracerr"
 
 	env "github.com/luchojuarez/issue-assigner/environment"
 )
 
 func TestSimpleTrace(t *testing.T) {
+	env.GetEnv().ClearEventTracer()
 	TraceInfo("init...")
 	TraceInfo("other")
 	TraceErrorf("%s,%s %d", "format", "error", 1)
-	_, err := load("https://api.github.com", jsonResourcesPath+"invalid.json")
-	TraceError0(err)
+	//generate error "invalid character 'n' looking for beginning of object key string"
+	load("https://api.github.com", jsonResourcesPath+"invalid.json")
 
-	if err := PrintAndClear("out.log"); err != nil {
-		tracerr.Print(err)
-	}
+	PrintAndClear("../out/otrp.log")
+
 	assert.Equal(t, 0, len(*(env.GetEnv().GetAllEvents())))
 
-	file, _ := ioutil.ReadFile("../out/out.log")
+	file, _ := ioutil.ReadFile("../out/otrp.log")
 	logAsArray := strings.Split(string(file), "\n")
 	assert.Equal(t, 5, len(logAsArray))
 	assert.True(t, strings.Contains(logAsArray[0], "init..."))

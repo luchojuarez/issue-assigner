@@ -20,8 +20,7 @@ func TestSuccess(t *testing.T) {
 	httpmock.Reset()
 	env.GetEnv().ClearUserStorage()
 
-	simpleStringResponderForGithubGetUser("luchojuarez", `{"login": "luchojuarez"}`, 200, 0)
-	simpleStringResponderForGithubGetUser("luchojuarez2", `{"login": "luchojuarez2"}`, 200, 0)
+	mockConfigSuccessCase()
 
 	config, _ := load("https://api.github.com", jsonResourcesPath+"config_test.json")
 
@@ -71,6 +70,19 @@ func simpleStringResponderForGithubGetUser(user, responseBody string, statusCode
 
 			return resp, nil
 		})
+}
+
+func mockConfigSuccessCase() {
+	simpleStringResponderForGithubGetUser("luchojuarez", `{"login": "luchojuarez"}`, 200, 0)
+	simpleStringResponderForGithubGetUser("luchojuarez2", `{"login": "luchojuarez2"}`, 200, 0)
+	simpleStringResponderForGithubGetUser("user3", `{"login": "user3"}`, 200, 0)
+	simpleStringResponderForPrSearch("luchojuarez/crypto", `[{"number": 1},{"number": 2},{"number": 3},{"number": 4}]`, 200, 0)
+	simpleStringResponderForGetPR(1, "luchojuarez/crypto", `{"number": 1,"title":"Title 1","body":"description 1","assignees":[{"login":"luchojuarez"}],"user":{"login":"luchojuarez"},"commits": 2,"additions": 353,  "deletions": 2}`, 200, 0)
+	simpleStringResponderForGetPR(2, "luchojuarez/crypto", `{"number": 1,"title":"Title 2","body":"description 2","assignees":[{"login":"luchojuarez2"}],"user":{"login":"luchojuarez2"},"commits": 2,"additions": 7,  "deletions": 89}`, 200, 0)
+
+	simpleStringResponderForPrSearch("luchojuarez/issue-assigner", `[{"number": 3},{"number": 8}]`, 200, 0)
+	simpleStringResponderForGetPR(3, "luchojuarez/issue-assigner", `{"number": 3,"title":"Title 3","body":"description 3","assignees":[{"login":"luchojuarez"}],"user":{"login":"luchojuarez"},"commits": 1,"additions": 1,  "deletions": 100}`, 200, 0)
+	simpleStringResponderForGetPR(8, "luchojuarez/issue-assigner", `{"number": 8,"title":"Title 8","body":"description 8","assignees":null,"user":{"login":"luchojuarez2"},"commits": 2,"additions": 99,  "deletions": 89}`, 200, 0)
 }
 
 // oputput for times = 500000 -> 'timeFormatter: 223ms | timeStringConcat: 67ms'

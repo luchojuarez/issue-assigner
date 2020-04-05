@@ -59,16 +59,17 @@ func (this *PRService) GetOpenPRs(fullRepoName string) ([]*models.PR, error) {
 	response, err := this.
 		RestClient.
 		R().
+		SetHeader("Authorization", "token 5de6f6012b9e2eced307e40ae3670577290a485c").
 		Get(fmt.Sprintf(getAllPrURL, fullRepoName))
 	if err != nil {
-		return nil, tracerr.Wrap(err)
+		return nil, TraceError0(tracerr.Wrap(err))
 	}
 	if response.StatusCode() != http.StatusOK {
-		return nil, fmt.Errorf("invalid status code: '%d'", response.StatusCode())
+		return nil, TraceError0(tracerr.Errorf("invalid status code: '%d' for resource '%s'", response.StatusCode(), fmt.Sprintf(getAllPrURL, fullRepoName)))
 	}
 	searchResult := prSearchResponse{}
 	if err := json.Unmarshal([]byte(fmt.Sprintf("%s", response)), &searchResult); err != nil {
-		return nil, tracerr.Wrap(err)
+		return nil, TraceError0(tracerr.Wrap(err))
 	}
 
 	toReturn := []*models.PR{}
@@ -76,7 +77,7 @@ func (this *PRService) GetOpenPRs(fullRepoName string) ([]*models.PR, error) {
 	for _, number := range searchResult {
 		newPr, err := this.getPrByNumber(fullRepoName, number.Number)
 		if err != nil {
-			return nil, tracerr.Wrap(err)
+			return nil, TraceError0(tracerr.Wrap(err))
 		}
 		toReturn = append(toReturn, newPr)
 		this.dao.SavePr(fullRepoName, newPr)
@@ -88,20 +89,23 @@ func (this *PRService) getPrByNumber(fullRepoName string, number int) (*models.P
 	newPr := models.PR{}
 	defer newPr.SetEndTime(time.Now())
 
-	response, err := this.RestClient.R().
+	response, err := this.RestClient.R().SetHeader("Authorization", "token 5de6f6012b9e2eced307e40ae3670577290a485c").
 		Get(fmt.Sprintf(getPrByNumberURL, fullRepoName, number))
 
 	if err != nil {
-		return nil, tracerr.Wrap(err)
+		return nil, TraceError0(tracerr.Wrap(err))
 	}
 	if response.StatusCode() != http.StatusOK {
-		return nil, tracerr.Errorf("invalid status code: '%d'", response.StatusCode())
+		return nil, TraceError0(tracerr.Errorf("invalid status code: '%d' for resource '%s'", response.StatusCode(), fmt.Sprintf(getAllPrURL, fullRepoName)))
 	}
 
 	if err := json.Unmarshal(([]byte(fmt.Sprintf("%s", response))), &newPr); err != nil {
-		return nil, tracerr.Wrap(err)
+		return nil, TraceError0(tracerr.Wrap(err))
 	}
 	newPr.AssigneesSize = len(newPr.Assignees)
+	if len(newPr.Body) > 200 {
+		newPr.Body = newPr.Body[:200]
+	}
 	for _, userInterface := range newPr.Assignees {
 		//cast interface to map
 		userMap := userInterface.(map[string]interface{})
@@ -109,10 +113,10 @@ func (this *PRService) getPrByNumber(fullRepoName string, number int) (*models.P
 		userName := userMap["login"].(string)
 		fetchedUser, err := this.UserServiceInstance.GetUser(userName)
 		if err != nil {
-			return nil, tracerr.New(fmt.Sprintf("cat get user info '%s' '%v'", userName, err))
+			return nil, TraceError0(tracerr.New(fmt.Sprintf("cat get user info '%s' '%v'", userName, err)))
 		}
-		// TODO is OK this calc?
-		fetchedUser.AssignedPRLines += newPr.Deletions + newPr.Additions
+		TraceInfof("OLD assignation found. repo:'%s', PR(%d) '%s' to user '%s'", fullRepoName, newPr.Number, newPr.Body, fetchedUser.NickName)
+		fetchedUser.AssingPR(&newPr)
 		newPr.AssignedUsers = append(newPr.AssignedUsers, fetchedUser)
 	}
 
