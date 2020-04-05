@@ -62,7 +62,7 @@ func (this UserService) getUser(nickname string) (*models.User, error) {
 	}
 
 	if response.StatusCode() != http.StatusOK {
-		return nil, tracerr.Errorf("invalid status code: '%d'", response.StatusCode())
+		return nil, tracerr.Errorf("invalid status code: '%d' for resource '%s'", response.StatusCode(), this.GithubBaseURL+"/users/"+nickname)
 	}
 
 	var newUser models.User

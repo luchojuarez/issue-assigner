@@ -64,7 +64,7 @@ func (this *PRService) GetOpenPRs(fullRepoName string) ([]*models.PR, error) {
 		return nil, tracerr.Wrap(err)
 	}
 	if response.StatusCode() != http.StatusOK {
-		return nil, fmt.Errorf("invalid status code: '%d'", response.StatusCode())
+		return nil, tracerr.Errorf("invalid status code: '%d' for resource '%s'", response.StatusCode(), fmt.Sprintf(getAllPrURL, fullRepoName))
 	}
 	searchResult := prSearchResponse{}
 	if err := json.Unmarshal([]byte(fmt.Sprintf("%s", response)), &searchResult); err != nil {
@@ -95,7 +95,7 @@ func (this *PRService) getPrByNumber(fullRepoName string, number int) (*models.P
 		return nil, tracerr.Wrap(err)
 	}
 	if response.StatusCode() != http.StatusOK {
-		return nil, tracerr.Errorf("invalid status code: '%d'", response.StatusCode())
+		return nil, tracerr.Errorf("invalid status code: '%d' for resource '%s'", response.StatusCode(), fmt.Sprintf(getAllPrURL, fullRepoName))
 	}
 
 	if err := json.Unmarshal(([]byte(fmt.Sprintf("%s", response))), &newPr); err != nil {
@@ -111,6 +111,7 @@ func (this *PRService) getPrByNumber(fullRepoName string, number int) (*models.P
 		if err != nil {
 			return nil, tracerr.New(fmt.Sprintf("cat get user info '%s' '%v'", userName, err))
 		}
+		TraceInfof("OLD assignation found. repo:'%s', PR(%d) '%s' to user '%s'", fullRepoName, newPr.Number, newPr.Body, fetchedUser.NickName)
 		fetchedUser.AssingPR(&newPr)
 		newPr.AssignedUsers = append(newPr.AssignedUsers, fetchedUser)
 	}

@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	logPath = "../out"
+	logPath = "out"
 )
 
 func TraceError(message string) {
@@ -35,7 +35,10 @@ func TraceInfo(message string) {
 func TraceInfof(format string, arguments ...interface{}) {
 	TraceInfo(fmt.Sprintf(format, arguments...))
 }
-
+func PrintAndClearWhithBeginTime(logFileName string, startTime time.Time) error {
+	TraceInfof("End at (%s) total millis: %d", startTime.Format(time.ANSIC), (time.Now().UnixNano()-startTime.UnixNano())/int64(time.Millisecond))
+	return PrintAndClear(logFileName)
+}
 func PrintAndClear(logFileName string) error {
 	defer env.GetEnv().ClearEventTracer()
 	return printToFile(fmt.Sprintf("%s/%s.log", logPath, strings.Split(logFileName, ".")[0]))

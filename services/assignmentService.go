@@ -35,7 +35,7 @@ func (this *AssignmentService) Run() {
 }
 
 func (this *AssignmentService) assingn(user *models.User, pull *models.PR, repo *models.Repo) {
-	user.AssingPR(pull)
+	linesAdded := user.AssingPR(pull)
 	pull.AssignedUsers = append(pull.AssignedUsers, user)
-	TraceInfof("Assing from repo:'%s', PR(%d) '%s' to user '%s'", repo.FullName, pull.Number, pull.Body, user.NickName)
+	TraceInfof("NEW assing from repo:'%s', PR(%d) '%s' to user '%s', assigned lines %d", repo.FullName, pull.Number, pull.Body, user.NickName, linesAdded)
 }
