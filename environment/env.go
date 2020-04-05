@@ -15,10 +15,11 @@ var (
 )
 
 type LocalEnvironment struct {
-	restClients map[string]*resty.Client
-	UserStorage map[string]*models.User
-	PrStorage   map[string][]*models.PR
-	IsTestEnv   bool
+	restClients       map[string]*resty.Client
+	UserStorage       map[string]*models.User
+	PrStorage         map[string][]*models.PR
+	EventTraceStorage []*models.Event
+	IsTestEnv         bool
 }
 
 // thread safe
@@ -28,10 +29,11 @@ func GetEnv() *LocalEnvironment {
 
 	if instance == nil {
 		instance = &LocalEnvironment{
-			restClients: make(map[string]*resty.Client),
-			UserStorage: make(map[string]*models.User),
-			PrStorage:   make(map[string][]*models.PR),
-			IsTestEnv:   true,
+			restClients:       make(map[string]*resty.Client),
+			UserStorage:       make(map[string]*models.User),
+			PrStorage:         make(map[string][]*models.PR),
+			EventTraceStorage: make([]*models.Event, 0),
+			IsTestEnv:         true,
 		}
 	}
 	return instance
@@ -65,4 +67,25 @@ func (this *LocalEnvironment) GetPrStorage() *map[string][]*models.PR {
 
 func (this *LocalEnvironment) ClearPrStorage() {
 	this.PrStorage = make(map[string][]*models.PR)
+}
+
+//thread safe
+func (this *LocalEnvironment) AddEventSafe(elem *models.Event) {
+	lock.Lock()
+	defer lock.Unlock()
+	this.EventTraceStorage = append(this.EventTraceStorage, elem)
+}
+
+func (this *LocalEnvironment) AddEvent(elem *models.Event) {
+	this.EventTraceStorage = append(this.EventTraceStorage, elem)
+}
+
+func (this *LocalEnvironment) GetAllEvents() *[]*models.Event {
+	return &this.EventTraceStorage
+}
+
+func (this *LocalEnvironment) ClearEventTracer() {
+	lock.Lock()
+	defer lock.Unlock()
+	this.EventTraceStorage = make([]*models.Event, 0)
 }
