@@ -33,7 +33,7 @@ func load(githubBaseURL, configFilePath string) (*JsonConfig, error) {
 	if err != nil {
 		return nil, tracerr.Wrap(err)
 	}
-	newConfig := JsonConfig{UserService: NewUserService()}
+	newConfig := JsonConfig{UserService: NewUserService0()}
 	// unmarshalling data...
 	if err = json.Unmarshal([]byte(file), &newConfig); err != nil {
 		return nil, tracerr.Wrap(err)

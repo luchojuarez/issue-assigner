@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/luchojuarez/issue-assigner/dao"
 	env "github.com/luchojuarez/issue-assigner/environment"
 	"github.com/luchojuarez/issue-assigner/models"
 	"github.com/ztrue/tracerr"
@@ -14,33 +15,39 @@ import (
 
 type UserService struct {
 	RestClient    *resty.Client
-	userStorage   *map[string]*models.User
 	GithubBaseURL string
+	dao           dao.UserDaoInterface
 }
 
-func NewUserService() *UserService {
-	return NewUserServiceCapacity(0)
+func NewUserService0() *UserService {
+	return NewUserService(dao.NewLocalUserDao())
 }
-func NewUserServiceCapacity(cap int) *UserService {
+func NewUserService(dao dao.UserDaoInterface) *UserService {
 	return &UserService{
 		RestClient:    env.GetEnv().GetResty("UserService"),
-		userStorage:   env.GetEnv().GetUserStorage(),
 		GithubBaseURL: "https://api.github.com",
+		dao:           dao,
 	}
 }
 
 func (this *UserService) GetUser(nickname string) (*models.User, error) {
-	// chek if user already fetched
-	if (*this.userStorage)[nickname] == nil {
-		// fetch and save locally
-		newUser, err := this.getUser(nickname)
-		if err != nil {
-			return nil, tracerr.Wrap(err)
-		}
-		(*this.userStorage)[nickname] = newUser
+	user, err := this.dao.GetUser(nickname)
+	if err != nil {
+		return nil, err
+	}
+	if user != nil {
+		return user, nil
+	}
+	user, err = this.getUser(nickname)
+	if err != nil {
+		return nil, err
+	}
+	err = this.dao.SaveUser(user)
+	if err != nil {
+		return nil, err
 	}
 
-	return (*this.userStorage)[nickname], nil
+	return user, nil
 }
 
 // this private function call github API to get user info
@@ -72,7 +79,7 @@ func (this UserService) getUser(nickname string) (*models.User, error) {
 
 func (this *UserService) GetSortedUsersByAssignations() []*models.User {
 	userList := []*models.User{}
-	for _, u := range *this.userStorage {
+	for _, u := range *this.dao.GetAllCached() {
 		userList = append(userList, u)
 	}
 

@@ -4,27 +4,25 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"reflect"
 	"testing"
 	"time"
 
 	"github.com/jarcoal/httpmock"
+	"github.com/luchojuarez/issue-assigner/dao"
 	env "github.com/luchojuarez/issue-assigner/environment"
 	"github.com/luchojuarez/issue-assigner/utils"
 	"github.com/onsi/ginkgo"
 	"github.com/stretchr/testify/assert"
+	"github.com/ztrue/tracerr"
 )
 
 func TestSuccesCase(t *testing.T) {
 	httpmock.Reset()
-	env.GetEnv().ClearUserStorage()
+	dao := dao.NewLocalUserDao()
 
-	usersMap := env.GetEnv().GetUserStorage()
-	userReference := (*usersMap)["luchojuarez"]
-	if userReference != nil {
-		assert.Fail(t, "user found", userReference)
-	}
 	// new service instance
-	userService := NewUserService()
+	userService := NewUserService(dao)
 
 	simpleStringResponderForGithubGetUser("luchojuarez", `{"login": "luchojuarez"}`, 200, 0)
 
@@ -34,7 +32,8 @@ func TestSuccesCase(t *testing.T) {
 	}
 	assert.Equal(t, "luchojuarez", user.NickName)
 
-	userReference = (*usersMap)["luchojuarez"]
+	userReference, err := dao.GetUser("luchojuarez")
+	tracerr.Print(err)
 	assert.NotNil(t, userReference, nil)
 }
 
@@ -42,7 +41,8 @@ func TestInvalidJsonResponse(t *testing.T) {
 	httpmock.Reset()
 	env.GetEnv().ClearUserStorage()
 	// new service instance
-	userService := NewUserService()
+	dao := dao.NewLocalUserDao()
+	userService := NewUserService(dao)
 
 	simpleStringResponderForGithubGetUser("luchojuarez", `{"login": luchojuarez"}`, 200, 0)
 
@@ -53,7 +53,8 @@ func TestInvalidJsonResponse(t *testing.T) {
 func TestInvalidApiSCResponse(t *testing.T) {
 	httpmock.Reset()
 	// new service instance
-	userService := NewUserService()
+	dao := dao.NewLocalUserDao()
+	userService := NewUserService(dao)
 
 	simpleStringResponderForGithubGetUser("luchojuarez", `{"login": "luchojuarez"}`, 404, 0)
 
@@ -67,7 +68,8 @@ func TestRestError(t *testing.T) {
 	// clear mocks
 	httpmock.Reset()
 	// new service instance
-	userService := NewUserService()
+	dao := dao.NewLocalUserDao()
+	userService := NewUserService(dao)
 
 	_, err := userService.GetUser("luchojuarez")
 	assert.Equal(t, "Get https://api.github.com/users/luchojuarez: no responder found", err.Error())
@@ -116,7 +118,8 @@ func TestSortUsers(t *testing.T) {
 
 	config, _ := load("https://api.github.com", jsonResourcesPath+"a_lot_of_users.json")
 	prService := NewPRService()
-	userService := NewUserService()
+	dao := dao.NewLocalUserDao()
+	userService := NewUserService(dao)
 
 	for _, reponName := range config.RepoNames {
 		pr, _ := prService.GetOpenPRs(reponName)
@@ -155,4 +158,25 @@ func mockUserFromApi(nickname, responseBody string, statusCode int, responseLag 
 			resp := httpmock.NewStringResponse(statusCode, responseBody)
 			return resp, nil
 		})
+}
+
+func assertNil(t *testing.T, object interface{}, msgAndArgs ...interface{}) {
+	if isNil(object) {
+		assert.Fail(t, "Expected value must be nil.", msgAndArgs...)
+	}
+	return
+}
+
+func isNil(object interface{}) bool {
+	if object == nil {
+		return true
+	}
+
+	value := reflect.ValueOf(object)
+	kind := value.Kind()
+	if kind >= reflect.Chan && kind <= reflect.Slice && value.IsNil() {
+		return true
+	}
+
+	return false
 }
