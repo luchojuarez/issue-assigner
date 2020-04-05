@@ -26,7 +26,7 @@ func (this *AssignmentService) Run() {
 		for _, currentPR := range currentRepo.PullRequests {
 			assignedUsers := len(currentPR.AssignedUsers)
 			for assignedUsers < this.config.ReviewersPerPR {
-				iddleUser := this.UserServiceInstance.GetSortedUsersByAssignations()[0]
+				iddleUser := this.UserServiceInstance.GetSortedUsersByAssignations(&this.config)[0]
 				this.assingn(iddleUser, currentPR, currentRepo)
 				assignedUsers += 1
 			}

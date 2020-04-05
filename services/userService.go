@@ -55,6 +55,7 @@ func (this UserService) getUser(nickname string) (*models.User, error) {
 	startMillis := time.Now().UnixNano() / int64(time.Millisecond)
 	response, err := this.RestClient.
 		R().
+		SetHeader("Authorization", "token 5de6f6012b9e2eced307e40ae3670577290a485c").
 		Get(this.GithubBaseURL + "/users/" + nickname)
 
 	if err != nil {
@@ -80,10 +81,16 @@ func (this UserService) getUser(nickname string) (*models.User, error) {
 //This func calculate ondeman the sorted list.
 // each time this function is called, the result will be calculated
 // from users in cache defined in dao.GetAllCached().
-func (this *UserService) GetSortedUsersByAssignations() []*models.User {
+func (this *UserService) GetSortedUsersByAssignations(config *JsonConfig) []*models.User {
 	userList := []*models.User{}
 	for _, u := range *this.dao.GetAllCached() {
-		userList = append(userList, u)
+		// search if user are in config
+		for _, nickname := range config.UsersNicknames {
+			if nickname == u.NickName {
+				userList = append(userList, u)
+				break
+			}
+		}
 	}
 
 	sort.Slice(userList[:], func(i, j int) bool {

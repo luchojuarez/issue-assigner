@@ -3,16 +3,11 @@ package services
 import (
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	env "github.com/luchojuarez/issue-assigner/environment"
 	"github.com/luchojuarez/issue-assigner/models"
 	"github.com/ztrue/tracerr"
-)
-
-const (
-	logPath = "out"
 )
 
 func TraceError(message string) {
@@ -41,7 +36,7 @@ func PrintAndClearWhithBeginTime(logFileName string, startTime time.Time) error 
 }
 func PrintAndClear(logFileName string) error {
 	defer env.GetEnv().ClearEventTracer()
-	return printToFile(fmt.Sprintf("%s/%s.log", logPath, strings.Split(logFileName, ".")[0]))
+	return printToFile(logFileName)
 }
 
 func printToFile(filename string) error {

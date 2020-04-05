@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -59,7 +60,7 @@ func TestInvalidApiSCResponse(t *testing.T) {
 	simpleStringResponderForGithubGetUser("luchojuarez", `{"login": "luchojuarez"}`, 404, 0)
 
 	_, err := userService.GetUser("luchojuarez")
-	assert.Equal(t, "invalid status code: '404'", err.Error())
+	assert.True(t, strings.Contains(err.Error(), "invalid status code: '404'"))
 }
 
 func TestRestError(t *testing.T) {
@@ -72,7 +73,7 @@ func TestRestError(t *testing.T) {
 	userService := NewUserService(dao)
 
 	_, err := userService.GetUser("luchojuarez")
-	assert.Equal(t, "Get https://api.github.com/users/luchojuarez: no responder found", err.Error())
+	assert.True(t, strings.Contains(err.Error(), "Get https://api.github.com/users/luchojuarez: no responder found"))
 }
 
 func TestSortUsers(t *testing.T) {
@@ -130,7 +131,7 @@ func TestSortUsers(t *testing.T) {
 
 	assert.Equal(t, adds+dels, u.AssignedPRLines)
 
-	list := userService.GetSortedUsersByAssignations()
+	list := userService.GetSortedUsersByAssignations(config)
 	assert.Equal(t, 4, len(list))
 	for i, user := range list {
 		if i == len(list)-1 {
