@@ -30,6 +30,11 @@ func TraceInfo(message string) {
 func TraceInfof(format string, arguments ...interface{}) {
 	TraceInfo(fmt.Sprintf(format, arguments...))
 }
+
+func TraceTime(eventName string, startTime time.Time) {
+	TraceInfof("[time tracer]'%s' end at (%s) total millis: %d", eventName, startTime.Format(time.ANSIC), (time.Now().UnixNano()-startTime.UnixNano())/int64(time.Millisecond))
+}
+
 func PrintAndClearWhithBeginTime(logFileName string, startTime time.Time) error {
 	TraceInfof("End at (%s) total millis: %d", startTime.Format(time.ANSIC), (time.Now().UnixNano()-startTime.UnixNano())/int64(time.Millisecond))
 	return PrintAndClear(logFileName)

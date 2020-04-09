@@ -47,6 +47,14 @@ func NewPRService0(userDao dao.UserDaoInterface, prDao dao.PrDaoInterface) *PRSe
 	}
 }
 
+func (this *PRService) GetOpenPRsAsinc(fullRepoName string, topic chan string, errors chan error) {
+	if _, err := this.GetOpenPRs(fullRepoName); err != nil {
+		tracerr.Print(err)
+		errors <- err
+	}
+	topic <- fullRepoName
+}
+
 func (this *PRService) GetOpenPRs(fullRepoName string) ([]*models.PR, error) {
 	prList, err := this.dao.GetPrByRepo(fullRepoName)
 	if err != nil {
@@ -59,7 +67,7 @@ func (this *PRService) GetOpenPRs(fullRepoName string) ([]*models.PR, error) {
 	response, err := this.
 		RestClient.
 		R().
-		SetHeader("Authorization", "token 5de6f6012b9e2eced307e40ae3670577290a485c").
+		//SetHeader("Authorization", "token 5de6f6012b9e2eced307e40ae3670577290a485c").
 		Get(fmt.Sprintf(getAllPrURL, fullRepoName))
 	if err != nil {
 		return nil, TraceError0(tracerr.Wrap(err))
@@ -88,8 +96,10 @@ func (this *PRService) GetOpenPRs(fullRepoName string) ([]*models.PR, error) {
 func (this *PRService) getPrByNumber(fullRepoName string, number int) (*models.PR, error) {
 	newPr := models.PR{}
 	defer newPr.SetEndTime(time.Now())
+	defer TraceTime("getPrByNumber", time.Now())
 
-	response, err := this.RestClient.R().SetHeader("Authorization", "token 5de6f6012b9e2eced307e40ae3670577290a485c").
+	response, err := this.RestClient.R().
+		//SetHeader("Authorization", "token 5de6f6012b9e2eced307e40ae3670577290a485c").
 		Get(fmt.Sprintf(getPrByNumberURL, fullRepoName, number))
 
 	if err != nil {
