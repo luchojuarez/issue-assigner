@@ -1,12 +1,15 @@
 package services
 
 import (
+	"sync"
+
 	"github.com/luchojuarez/issue-assigner/models"
 )
 
 type AssignmentService struct {
 	config              JsonConfig
 	UserServiceInstance *UserService
+	lock                *sync.Mutex
 }
 
 func NewAssignmentService(configFilePath string) (*AssignmentService, error) {
@@ -17,11 +20,25 @@ func NewAssignmentService(configFilePath string) (*AssignmentService, error) {
 	service := AssignmentService{
 		config:              *c,
 		UserServiceInstance: NewUserService0(),
+		lock:                &sync.Mutex{},
 	}
 	return &service, nil
 }
 
 func (this *AssignmentService) Run() {
+	for _, currentRepo := range this.config.Repos {
+		for _, currentPR := range currentRepo.PullRequests {
+			assignedUsers := len(currentPR.AssignedUsers)
+			for assignedUsers < this.config.ReviewersPerPR {
+				iddleUser := this.UserServiceInstance.GetSortedUsersByAssignations(&this.config)[0]
+				this.assingn(iddleUser, currentPR, currentRepo)
+				assignedUsers += 1
+			}
+		}
+	}
+}
+
+func (this *AssignmentService) AsincRun() {
 	for _, currentRepo := range this.config.Repos {
 		for _, currentPR := range currentRepo.PullRequests {
 			assignedUsers := len(currentPR.AssignedUsers)

@@ -76,6 +76,19 @@ func TestRestError(t *testing.T) {
 	assert.True(t, strings.Contains(err.Error(), "Get https://api.github.com/users/luchojuarez: no responder found"))
 }
 
+func TestCOncurrencyGetUser(t *testing.T) {
+	simpleStringResponderForGithubGetUser("slow", `{"login": "user1"}`, 200, 500)
+	simpleStringResponderForGithubGetUser("slow1", `{"login": "user1"}`, 200, 500)
+	simpleStringResponderForGithubGetUser("slow2", `{"login": "user1"}`, 200, 500)
+	service := NewUserService0()
+	go service.GetUser("slow")
+	go service.GetUser("slow1")
+	go service.GetUser("slow2")
+	go service.GetUser("slow")
+	go service.GetUser("slow")
+
+}
+
 func TestSortUsers(t *testing.T) {
 	// clear mocks
 	httpmock.Reset()
@@ -117,7 +130,8 @@ func TestSortUsers(t *testing.T) {
 	simpleStringResponderForGetPR(2, "luchojuarez/issue", issue2, 200, 0)
 	simpleStringResponderForGetPR(3, "luchojuarez/issue", issue3, 200, 0)
 
-	config, _ := load("https://api.github.com", jsonResourcesPath+"a_lot_of_users.json")
+	config, err := load("https://api.github.com", jsonResourcesPath+"a_lot_of_users.json", "async")
+	tracerr.Print(err)
 	prService := NewPRService()
 	dao := dao.NewLocalUserDao()
 	userService := NewUserService(dao)

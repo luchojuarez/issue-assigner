@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/go-resty/resty/v2"
@@ -17,6 +18,7 @@ type UserService struct {
 	RestClient    *resty.Client
 	GithubBaseURL string
 	dao           dao.UserDaoInterface
+	lock          *sync.Mutex
 }
 
 func NewUserService0() *UserService {
@@ -27,6 +29,7 @@ func NewUserService(dao dao.UserDaoInterface) *UserService {
 		RestClient:    env.GetEnv().GetResty("UserService"),
 		GithubBaseURL: "https://api.github.com",
 		dao:           dao,
+		lock:          &sync.Mutex{},
 	}
 }
 
@@ -50,12 +53,21 @@ func (this *UserService) GetUser(nickname string) (*models.User, error) {
 	return user, nil
 }
 
+func (this *UserService) GetUserAsinc(nickname string, topic chan string, errors chan error) {
+	if _, err := this.GetUser(nickname); err != nil {
+		tracerr.Print(err)
+		errors <- err
+	}
+	topic <- nickname
+}
+
 // this private function call github API to get user info
 func (this UserService) getUser(nickname string) (*models.User, error) {
+	defer TraceTime("get_user_from_api", time.Now())
 	startMillis := time.Now().UnixNano() / int64(time.Millisecond)
 	response, err := this.RestClient.
 		R().
-		SetHeader("Authorization", "token 5de6f6012b9e2eced307e40ae3670577290a485c").
+		//SetHeader("Authorization", "token 5de6f6012b9e2eced307e40ae3670577290a485c").
 		Get(this.GithubBaseURL + "/users/" + nickname)
 
 	if err != nil {
