@@ -1,6 +1,15 @@
 {
-  "repos_full_names":["luchojuarez/crypto","luchojuarez/issue-assigner"],
-  "users_niknames":["luchojuarez","luchojuarez2","user3"],
-  "github_token":"token foo",
-  "reviewers_per_pr":3
+    "task_source":[
+        {
+            "resource_type":"all_pr_from_repo",
+            "resources":["luchojuarez/crypto","luchojuarez/issue-assigner"]
+        },
+        {
+            "resource_type":"pr_list",
+            "resources":["user1/foo/7","user2/bar/10"]
+        }
+    ],
+    "users_niknames":["luchojuarez","luchojuarez2","user3"],
+    "github_token":"token foo",
+    "reviewers_per_issue":2
 }

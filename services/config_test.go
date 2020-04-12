@@ -23,13 +23,11 @@ func TestSuccess(t *testing.T) {
 	env.GetEnv().ClearUserStorage()
 
 	mockConfigSuccessCase()
+	mockPRWhit2Reviwers()
 
-	config, _ := load("https://api.github.com", jsonResourcesPath+"config_test.json", "sync")
-
-	assert.Equal(t, int(2), len(config.RepoNames))
-	// check repo names
-	assert.Equal(t, "luchojuarez/crypto", config.RepoNames[0])
-	assert.Equal(t, "luchojuarez/issue-assigner", config.RepoNames[1])
+	config, err := load("https://api.github.com", jsonResourcesPath+"config_test.json")
+	log.Printf("vamo con el error")
+	tracerr.Print(err)
 
 	// check info in JSON input and api response
 	assert.Equal(t, "luchojuarez", config.UsersNicknames[0])
@@ -43,46 +41,18 @@ func TestSuccess(t *testing.T) {
 	log.Printf("total time sync %d", time.Now().UnixNano()/int64(time.Millisecond)-init)
 }
 
-func TestSuccessAsync(t *testing.T) {
-	init := time.Now().UnixNano() / int64(time.Millisecond)
-
-	httpmock.Reset()
-	env.GetEnv().ClearUserStorage()
-
-	mockConfigSuccessCase()
-
-	config, _ := load("https://api.github.com", jsonResourcesPath+"config_test.json", "async")
-
-	assert.Equal(t, int(2), len(config.RepoNames))
-	// check repo names
-	assert.Equal(t, "luchojuarez/crypto", config.RepoNames[0])
-	assert.Equal(t, "luchojuarez/issue-assigner", config.RepoNames[1])
-
-	// check info in JSON input and api response
-	assert.Equal(t, "luchojuarez", config.UsersNicknames[0])
-	assert.Equal(t, "luchojuarez", config.Users[0].NickName)
-
-	assert.Equal(t, "luchojuarez2", config.UsersNicknames[1])
-	assert.Equal(t, "luchojuarez2", config.Users[1].NickName)
-
-	// test teken
-	assert.Equal(t, "token foo", config.GithubToken)
-	log.Printf("tiempo async %d", time.Now().UnixNano()/int64(time.Millisecond)-init)
-
-}
-
 func TestFileNotFound(t *testing.T) {
-	_, err := load("https://api.github.com", "foo.json", "async")
+	_, err := load("https://api.github.com", "foo.json")
 	assert.Equal(t, "open foo.json: no such file or directory", tracerr.Unwrap(err).Error())
 }
 
 func TestInvalidJsonFile(t *testing.T) {
-	_, err := load("https://api.github.com", jsonResourcesPath+"invalid.json", "async")
+	_, err := load("https://api.github.com", jsonResourcesPath+"invalid.json")
 	assert.Equal(t, "invalid character 'n' looking for beginning of object key string", tracerr.Unwrap(err).Error())
 }
 
 func TestLoadUserError(t *testing.T) {
-	_, err := load("https://api.github.com", jsonResourcesPath+"user_no_exist.json", "async")
+	_, err := load("https://api.github.com", jsonResourcesPath+"user_no_exist.json")
 	if err == nil {
 		tracerr.Print(err)
 		assert.Fail(t, "Error ist not null")

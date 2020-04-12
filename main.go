@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -10,7 +11,7 @@ import (
 )
 
 func main() {
-	defer services.PrintAndClearWhithBeginTime("new_run", time.Now())
+	defer services.PrintAndClearWhithBeginTime(fmt.Sprintf("out/run%d.log", time.Now().UnixNano()/int64(time.Millisecond)), time.Now())
 	assignmentService, err := services.NewAssignmentService("resources/main/json/config.json")
 
 	if err == nil {

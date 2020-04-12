@@ -3,15 +3,15 @@ package models
 import "time"
 
 type User struct {
-	NickName        string `json:"login"`
-	FetchedAt       time.Time
-	RequestTime     int64
-	AssignedPRLines int
-	AssignedPR      []*PR
+	NickName          string `json:"login"`
+	FetchedAt         time.Time
+	RequestTime       int64
+	AssignedTaskValue int
+	AssignedIssues    []*Issue
 }
 
-func (this *User) AssingPR(pullRequest *PR) int {
-	this.AssignedPR = append(this.AssignedPR, pullRequest)
-	this.AssignedPRLines += pullRequest.Deletions + pullRequest.Additions
-	return pullRequest.Deletions + pullRequest.Additions
+func (this *User) AssingIssue(issue Issue) int {
+	this.AssignedIssues = append(this.AssignedIssues, &issue)
+	this.AssignedTaskValue += issue.Weight()
+	return issue.Weight()
 }

@@ -16,7 +16,7 @@ func TestSimpleTrace(t *testing.T) {
 	TraceInfo("other")
 	TraceErrorf("%s,%s %d", "format", "error", 1)
 	//generate error "invalid character 'n' looking for beginning of object key string"
-	load("https://api.github.com", jsonResourcesPath+"invalid.json", "async")
+	load("https://api.github.com", jsonResourcesPath+"invalid.json")
 
 	PrintAndClear("../out/otrp.log")
 
