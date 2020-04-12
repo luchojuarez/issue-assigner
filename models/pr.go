@@ -29,6 +29,10 @@ func (this *PR) GetAssignedUsers() []*User {
 	return this.AssignedUsers
 }
 
+func (this *PR) GetAuthor() *User {
+	return this.User
+}
+
 func (this *PR) Assing(u *User) {
 	this.AssignedUsers = append(this.AssignedUsers, u)
 }
