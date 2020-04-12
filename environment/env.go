@@ -22,6 +22,7 @@ type LocalEnvironment struct {
 	PrStorage         map[string][]*models.PR
 	EventTraceStorage []*models.Event
 	IsTestEnv         bool
+	TokenManager      TokenManager
 }
 
 // thread safe
@@ -30,12 +31,19 @@ func GetEnv() *LocalEnvironment {
 	defer lock.Unlock()
 
 	if instance == nil {
+		var tm TokenManager
+		if IsTestEnv() {
+			tm = &MockedToken{}
+		} else {
+			tm = &LocalToken{}
+		}
 		instance = &LocalEnvironment{
 			restClients:       make(map[string]*resty.Client),
 			UserStorage:       make(map[string]*models.User),
 			PrStorage:         make(map[string][]*models.PR),
 			EventTraceStorage: make([]*models.Event, 0),
 			IsTestEnv:         false,
+			TokenManager:      tm,
 		}
 	}
 	return instance

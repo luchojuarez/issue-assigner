@@ -67,7 +67,7 @@ func (this UserService) getUser(nickname string) (*models.User, error) {
 	startMillis := time.Now().UnixNano() / int64(time.Millisecond)
 	response, err := this.RestClient.
 		R().
-		//SetHeader("Authorization", "token 5de6f6012b9e2eced307e40ae3670577290a485c").
+		SetHeader("Authorization", "token "+env.GetEnv().TokenManager.Get()).
 		Get(this.GithubBaseURL + "/users/" + nickname)
 
 	if err != nil {
