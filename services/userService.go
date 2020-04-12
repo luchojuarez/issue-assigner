@@ -106,7 +106,7 @@ func (this *UserService) GetSortedUsersByAssignations(config *JsonConfig) []*mod
 	}
 
 	sort.Slice(userList[:], func(i, j int) bool {
-		return userList[i].AssignedPRLines < userList[j].AssignedPRLines
+		return userList[i].AssignedTaskValue < userList[j].AssignedTaskValue
 	})
 	return userList
 }

@@ -9,6 +9,8 @@ import (
 
 	"github.com/luchojuarez/issue-assigner/dao"
 	"github.com/luchojuarez/issue-assigner/models"
+
+	env "github.com/luchojuarez/issue-assigner/environment"
 )
 
 const (
@@ -17,27 +19,22 @@ const (
 )
 
 type JsonConfig struct {
-	RepoNames      []string `json:"repos_full_names"`
-	UsersNicknames []string `json:"users_niknames"`
-	GithubToken    string   `json:"github_token"`
-	ReviewersPerPR int      `json:"reviewers_per_pr"`
-	Repos          []*models.Repo
-	Users          []*models.User
-	UserService    *UserService
-	prService      *PRService
+	UsersNicknames    []string             `json:"users_niknames"`
+	GithubToken       string               `json:"github_token"`
+	ReviewersPerIssue int                  `json:"reviewers_per_issue"`
+	TaskSoruce        []*models.TaskSoruce `json:"task_source"`
+	Users             []*models.User
+	taskLoaders       []TaskLoader
+	IssueList         []models.Issue
+	UserService       *UserService
 }
 
 func Load(configFilePath string) (*JsonConfig, error) {
-	defer TraceTime("initial_data_load_sync", time.Now())
-	return load(GithubBaseURL, configFilePath, "sync")
+	defer TraceTime("initial_data_load", time.Now())
+	return load(GithubBaseURL, configFilePath)
 }
 
-func LoadAsync(configFilePath string) (*JsonConfig, error) {
-	defer TraceTime("initial_data_load_async", time.Now())
-	return load(GithubBaseURL, configFilePath, "async")
-}
-
-func load(githubBaseURL, configFilePath, strategy string) (*JsonConfig, error) {
+func load(githubBaseURL, configFilePath string) (*JsonConfig, error) {
 	// read main config file
 	file, err := ioutil.ReadFile(configFilePath)
 	if err != nil {
@@ -45,93 +42,31 @@ func load(githubBaseURL, configFilePath, strategy string) (*JsonConfig, error) {
 	}
 	newConfig := JsonConfig{
 		UserService: NewUserService0(),
-		prService:   NewPRService(),
 	}
 	// unmarshalling data...
 	if err = json.Unmarshal([]byte(file), &newConfig); err != nil {
 		return nil, TraceError0(tracerr.Wrap(err))
 	}
+	// syinchronize tow main task
+	mainChan := make(chan bool, 8)
 
-	switch strategy {
-	case "async":
-		// load user info
-		if err := newConfig.asyncLoadUsers(); err != nil {
-			return nil, TraceError0(tracerr.Wrap(err))
-		}
-		// load repository info
-		if err := newConfig.asyncLoadRepos(); err != nil {
-			return nil, TraceError0(tracerr.Wrap(err))
-		}
-	case "sync":
-		// load user info
-		if err := newConfig.loadUsers(); err != nil {
-			return nil, TraceError0(tracerr.Wrap(err))
-		}
-		// load repository info
-		if err := newConfig.loadRepos(); err != nil {
-			return nil, TraceError0(tracerr.Wrap(err))
-		}
-	default:
-		return nil, TraceError0(tracerr.New("invalid load strategy " + strategy))
+	if err := newConfig.loadTasks(mainChan); err != nil {
+		return nil, err
+	}
+
+	if err := newConfig.loadUsers(mainChan); err != nil {
+		return nil, TraceError0(tracerr.Wrap(err))
+	}
+	totalTask := 2
+	for totalTask > 0 {
+		<-mainChan
+		totalTask--
 	}
 
 	return &newConfig, nil
 }
 
-func (this *JsonConfig) loadRepos() error {
-	for _, repoName := range this.RepoNames {
-		newRepo := models.NewRepo(repoName)
-		prList, err := this.prService.GetOpenPRs(newRepo.FullName)
-		if err != nil {
-			return tracerr.Wrap(err)
-		}
-		newRepo.PullRequests = prList
-		this.Repos = append(this.Repos, &newRepo)
-	}
-	return nil // tracerr.New("not implemented yet!")
-}
-
-func (this *JsonConfig) loadUsers() error {
-	for _, name := range this.UsersNicknames {
-		newUser, err := this.UserService.GetUser(name)
-		if err != nil {
-			return tracerr.Wrap(err)
-		}
-		this.Users = append(this.Users, newUser)
-	}
-	return nil
-}
-
-//Asinc methods
-func (this *JsonConfig) asyncLoadRepos() error {
-	runningRoutings := 0
-	topic := make(chan string, len(this.RepoNames)+1)
-	errors := make(chan error, len(this.RepoNames)+1)
-	// launch rutines
-	for _, repoName := range this.RepoNames {
-		this.prService.GetOpenPRsAsinc(repoName, topic, errors)
-		runningRoutings++
-	}
-
-	dao := dao.NewLocalPrDao()
-
-	for runningRoutings > 0 {
-		if len(errors) > 0 {
-			return <-errors
-		}
-		repoFetched := <-topic
-
-		newRepo := models.NewRepo(repoFetched)
-		newRepo.PullRequests, _ = dao.GetPrByRepo(repoFetched)
-		this.Repos = append(this.Repos, &newRepo)
-
-		runningRoutings--
-	}
-
-	return nil
-}
-
-func (this *JsonConfig) asyncLoadUsers() error {
+func (this *JsonConfig) loadUsers(mainChan chan bool) error {
 	runningRoutings := 0
 	topic := make(chan string, len(this.UsersNicknames)+1)
 	errors := make(chan error, len(this.UsersNicknames)+1)
@@ -144,16 +79,57 @@ func (this *JsonConfig) asyncLoadUsers() error {
 	dao := dao.NewLocalUserDao()
 	for runningRoutings > 0 {
 		if len(errors) > 0 {
+			mainChan <- false
 			return <-errors
 		}
 		fetchedUser := <-topic
 		u, err := dao.GetUser(fetchedUser)
 		if err != nil {
+			mainChan <- false
 			return err
 		}
 		this.Users = append(this.Users, u)
 		runningRoutings--
 	}
+	mainChan <- true
+	return nil
+}
 
+func (this *JsonConfig) loadTasks(mainChan chan bool) error {
+	taskQueue := make(chan bool, 100)
+	errorList := make(chan error, 100)
+	totalTask := 0
+
+	for _, taskSoruce := range this.TaskSoruce {
+		var currentTask TaskLoader
+		switch taskSoruce.ResourceType {
+		case "all_pr_from_repo":
+			currentTask = &AllPrTaskLoader{
+				RepoNames: taskSoruce.Resources,
+				prService: NewPRService(),
+			}
+		case "pr_list":
+			currentTask = &PrListTaskLoader{
+				PrList:    taskSoruce.Resources,
+				prService: NewPRService(),
+			}
+		}
+		totalTask += currentTask.GetTotalTask()
+		go currentTask.GetAllTask(taskQueue, errorList)
+	}
+	for totalTask > 0 {
+		if len(errorList) > 0 {
+			mainChan <- false
+			return <-errorList
+		}
+		<-taskQueue
+		totalTask--
+	}
+	for _, value := range *env.GetEnv().GetPrStorage() {
+		for _, pr := range value {
+			this.IssueList = append(this.IssueList, pr)
+		}
+	}
+	mainChan <- true
 	return nil
 }

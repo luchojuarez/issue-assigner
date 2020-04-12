@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -12,6 +13,7 @@ type PR struct {
 	Title         string        `json:"title"`
 	Body          string        `json:"body"`
 	Assignees     []interface{} `json:"assignees"`
+	Repo          *Repo         `json:"repo"`
 	AssignedUsers []*User
 	AssigneesSize int
 	User          *User `json:"user"`
@@ -19,34 +21,23 @@ type PR struct {
 	RequestTime   int64
 }
 
+func (this *PR) Weight() int {
+	return this.Additions + this.Deletions
+}
+
+func (this *PR) GetAssignedUsers() []*User {
+	return this.AssignedUsers
+}
+
+func (this *PR) Assing(u *User) {
+	this.AssignedUsers = append(this.AssignedUsers, u)
+}
+func (this *PR) ToString() string {
+	return fmt.Sprintf("PR %s(%d) by '%s' weight: %d", "this.Repo.Name", this.Number, this.User.NickName, this.Weight())
+}
+
 func (this *PR) SetEndTime(initTime time.Time) {
 	this.FetchedAt = initTime
 	endMillis := time.Now().UnixNano() / int64(time.Millisecond)
 	this.RequestTime = endMillis - (initTime.UnixNano() / int64(time.Millisecond))
 }
-
-//
-// func (this *PR) UnmarshalJSON(bytes []byte) error {
-// 	var f interface{}
-// 	if err := json.Unmarshal(bytes, &f); err != nil {
-// 		return err
-// 	}
-// 	// cast bytes to Map
-// 	bytesAsMap := f.(map[string]interface{})
-//
-// 	assigneesMapInterface := bytesAsMap["assignees"] // [{"login": "luchojuarez"}]
-// 	if assigneesMapInterface == nil {
-// 		log.Printf("no tiene assignees")
-// 		return nil
-// 	}
-//
-// 	listAssigneesInterface := assigneesMapInterface.([]interface{})
-// 	log.Printf("esto tiene list %s", listAssigneesInterface)
-//
-// 	for _, u := range listAssigneesInterface {
-// 		userMap := u.(map[string]interface{})
-// 		log.Printf("esto tiene dentro del for %s", userMap["login"])
-// 	}
-//
-// 	return nil
-// }

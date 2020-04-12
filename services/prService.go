@@ -3,6 +3,7 @@ package services
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -47,12 +48,12 @@ func NewPRService0(userDao dao.UserDaoInterface, prDao dao.PrDaoInterface) *PRSe
 	}
 }
 
-func (this *PRService) GetOpenPRsAsinc(fullRepoName string, topic chan string, errors chan error) {
+func (this *PRService) GetOpenPRsAsinc(fullRepoName string, topic chan bool, errors chan error) {
 	if _, err := this.GetOpenPRs(fullRepoName); err != nil {
 		tracerr.Print(err)
 		errors <- err
 	}
-	topic <- fullRepoName
+	topic <- true
 }
 
 func (this *PRService) GetOpenPRs(fullRepoName string) ([]*models.PR, error) {
@@ -93,6 +94,27 @@ func (this *PRService) GetOpenPRs(fullRepoName string) ([]*models.PR, error) {
 	return toReturn, nil
 }
 
+func (this *PRService) GetPrByNumber(fullRepoName string, number int, dones chan bool, errors chan error) {
+	pr, err := this.dao.GetPr(fullRepoName, number)
+	if err != nil {
+		errors <- err
+		return
+	}
+	if pr != nil {
+		log.Printf("lo encontre %s/%d", fullRepoName, number)
+		dones <- true
+		return
+	}
+	pr, err = this.getPrByNumber(fullRepoName, number)
+	if err != nil {
+		errors <- err
+		return
+	}
+	this.dao.SavePr(fullRepoName, pr)
+	dones <- true
+	return
+}
+
 func (this *PRService) getPrByNumber(fullRepoName string, number int) (*models.PR, error) {
 	newPr := models.PR{}
 	defer newPr.SetEndTime(time.Now())
@@ -126,7 +148,7 @@ func (this *PRService) getPrByNumber(fullRepoName string, number int) (*models.P
 			return nil, TraceError0(tracerr.New(fmt.Sprintf("cat get user info '%s' '%v'", userName, err)))
 		}
 		TraceInfof("OLD assignation found. repo:'%s', PR(%d) '%s' to user '%s'", fullRepoName, newPr.Number, newPr.Body, fetchedUser.NickName)
-		fetchedUser.AssingPR(&newPr)
+		fetchedUser.AssingIssue(&newPr)
 		newPr.AssignedUsers = append(newPr.AssignedUsers, fetchedUser)
 	}
 

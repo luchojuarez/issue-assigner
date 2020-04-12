@@ -10,6 +10,7 @@ type AssignmentService struct {
 	config              JsonConfig
 	UserServiceInstance *UserService
 	lock                *sync.Mutex
+	taskList            []*models.Issue
 }
 
 func NewAssignmentService(configFilePath string) (*AssignmentService, error) {
@@ -26,33 +27,18 @@ func NewAssignmentService(configFilePath string) (*AssignmentService, error) {
 }
 
 func (this *AssignmentService) Run() {
-	for _, currentRepo := range this.config.Repos {
-		for _, currentPR := range currentRepo.PullRequests {
-			assignedUsers := len(currentPR.AssignedUsers)
-			for assignedUsers < this.config.ReviewersPerPR {
-				iddleUser := this.UserServiceInstance.GetSortedUsersByAssignations(&this.config)[0]
-				this.assingn(iddleUser, currentPR, currentRepo)
-				assignedUsers += 1
-			}
+	for _, currentIssue := range this.config.IssueList {
+		assignedUsers := len(currentIssue.GetAssignedUsers())
+		for assignedUsers < this.config.ReviewersPerIssue {
+			iddleUser := this.UserServiceInstance.GetSortedUsersByAssignations(&this.config)[0]
+			this.assingn(iddleUser, &currentIssue)
+			assignedUsers += 1
 		}
 	}
 }
 
-func (this *AssignmentService) AsincRun() {
-	for _, currentRepo := range this.config.Repos {
-		for _, currentPR := range currentRepo.PullRequests {
-			assignedUsers := len(currentPR.AssignedUsers)
-			for assignedUsers < this.config.ReviewersPerPR {
-				iddleUser := this.UserServiceInstance.GetSortedUsersByAssignations(&this.config)[0]
-				this.assingn(iddleUser, currentPR, currentRepo)
-				assignedUsers += 1
-			}
-		}
-	}
-}
-
-func (this *AssignmentService) assingn(user *models.User, pull *models.PR, repo *models.Repo) {
-	linesAdded := user.AssingPR(pull)
-	pull.AssignedUsers = append(pull.AssignedUsers, user)
-	TraceInfof("NEW assing from repo:'%s', PR(%d) '%s' to user '%s', assigned lines %d", repo.FullName, pull.Number, pull.Body, user.NickName, linesAdded)
+func (this *AssignmentService) assingn(user *models.User, issue *models.Issue) {
+	user.AssingIssue(*issue)
+	(*issue).Assing(user)
+	TraceInfof("NEW assing from issue:'%v', to user '%s', assigned lines %d", (*issue).ToString(), user.NickName, (*issue).Weight())
 }
