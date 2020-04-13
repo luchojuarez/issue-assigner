@@ -3,6 +3,7 @@ module github.com/luchojuarez/issue-assigner
 go 1.13
 
 require (
+	github.com/atotto/clipboard v0.1.2
 	github.com/go-resty/resty/v2 v2.2.0
 	github.com/jarcoal/httpmock v1.0.5
 	github.com/leekchan/accounting v0.0.0-20191218023648-17a4ce5f94d4

@@ -65,13 +65,19 @@ func (this *PRService) GetOpenPRs(fullRepoName string) ([]*models.PR, error) {
 		return prList, nil
 	}
 	defer this.setEndTime(time.Now())
-	response, err := this.
-		RestClient.
-		R().
-		SetHeader("Authorization", "token "+env.GetEnv().TokenManager.Get()).
-		Get(fmt.Sprintf(getAllPrURL, fullRepoName))
+	req := this.RestClient.R()
+	if env.GetEnv().TokenManager.HasToken() {
+		req = req.SetHeader("Authorization", "token "+env.GetEnv().TokenManager.Get())
+	} else {
+		TraceInfo("Not tokent set")
+	}
+
+	response, err := req.Get(fmt.Sprintf(getAllPrURL, fullRepoName))
 	if err != nil {
 		return nil, TraceError0(tracerr.Wrap(err))
+	}
+	if response.StatusCode() == http.StatusForbidden {
+		return nil, tracerr.Errorf("Request over cuota, check github token, resource '%s'", fmt.Sprintf(getAllPrURL, fullRepoName))
 	}
 	if response.StatusCode() != http.StatusOK {
 		return nil, TraceError0(tracerr.Errorf("invalid status code: '%d' for resource '%s'", response.StatusCode(), fmt.Sprintf(getAllPrURL, fullRepoName)))
@@ -120,9 +126,13 @@ func (this *PRService) getPrByNumber(fullRepoName string, number int) (*models.P
 	defer newPr.SetEndTime(time.Now())
 	defer TraceTime("getPrByNumber", time.Now())
 
-	response, err := this.RestClient.R().
-		SetHeader("Authorization", "token "+env.GetEnv().TokenManager.Get()).
-		Get(fmt.Sprintf(getPrByNumberURL, fullRepoName, number))
+	req := this.RestClient.R()
+	if env.GetEnv().TokenManager.HasToken() {
+		req = req.SetHeader("Authorization", "token "+env.GetEnv().TokenManager.Get())
+	} else {
+		TraceInfo("Not tokent set")
+	}
+	response, err := req.Get(fmt.Sprintf(getPrByNumberURL, fullRepoName, number))
 
 	if err != nil {
 		return nil, TraceError0(tracerr.Wrap(err))

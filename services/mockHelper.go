@@ -2,9 +2,9 @@ package services
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -24,7 +24,7 @@ func mockPRWhit2Reviwers() {
 }
 
 func mockConfigSuccessCase() {
-	env.GetEnv().TokenManager.Set("24234234brgnlh2rv")
+	env.GetEnv().TokenManager.Set("40_chars_0101010101010101010101010101010")
 	simpleStringResponderForGithubGetUser("luchojuarez", `{"login": "luchojuarez"}`, 200, 400)
 	simpleStringResponderForGithubGetUser("luchojuarez2", `{"login": "luchojuarez2"}`, 200, 400)
 	simpleStringResponderForGithubGetUser("user3", `{"login": "user3"}`, 200, 400)
@@ -43,8 +43,8 @@ func simpleStringResponderForGithubGetUser(user, responseBody string, statusCode
 		"GET",
 		"https://api.github.com/users/"+user,
 		func(req *http.Request) (*http.Response, error) {
-			if req.Header["Authorization"] == nil {
-				log.Printf("no tiene token")
+			if err := checkToken(req); err != nil {
+				return nil, err
 			}
 			time.Sleep(responseLag * time.Millisecond)
 			resp := httpmock.NewStringResponse(statusCode, responseBody)
@@ -58,8 +58,8 @@ func simpleStringResponderForPrSearch(repoFullName, responseBody string, statusC
 		"GET",
 		"https://api.github.com/repos/"+repoFullName+"/pulls?status=open",
 		func(req *http.Request) (*http.Response, error) {
-			if req.Header["Authorization"] == nil {
-				return nil, tracerr.New("no tiene token")
+			if err := checkToken(req); err != nil {
+				return nil, err
 			}
 			time.Sleep(responseLag * time.Millisecond)
 			resp := httpmock.NewStringResponse(statusCode, responseBody)
@@ -72,8 +72,8 @@ func simpleStringResponderForGetPR(number int, repoFullName, responseBody string
 		"GET",
 		"https://api.github.com/repos/"+repoFullName+"/pulls/"+fmt.Sprintf("%d", number),
 		func(req *http.Request) (*http.Response, error) {
-			if req.Header["Authorization"] == nil {
-				return nil, tracerr.New("no tiene token")
+			if err := checkToken(req); err != nil {
+				return nil, err
 			}
 			time.Sleep(responseLag * time.Millisecond)
 			resp := httpmock.NewStringResponse(statusCode, responseBody)
@@ -86,8 +86,8 @@ func mockUserFromApi(nickname, responseBody string, statusCode int, responseLag 
 		"GET",
 		"https://api.github.com/users/"+nickname,
 		func(req *http.Request) (*http.Response, error) {
-			if req.Header["Authorization"] == nil {
-				return nil, tracerr.New("no tiene token")
+			if err := checkToken(req); err != nil {
+				return nil, err
 			}
 			time.Sleep(responseLag * time.Millisecond)
 			resp := httpmock.NewStringResponse(statusCode, responseBody)
@@ -114,4 +114,16 @@ func isNil(object interface{}) bool {
 	}
 
 	return false
+}
+
+func checkToken(req *http.Request) error {
+	if req.Header["Authorization"] == nil {
+		return tracerr.New("no tiene token")
+	}
+	header := req.Header["Authorization"][0]
+	token := strings.Split(header, " ")[1]
+	if err := env.ValidateToken(token); err != nil {
+		return TraceError0(err)
+	}
+	return nil
 }

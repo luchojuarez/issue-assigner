@@ -19,6 +19,7 @@ func TestSuccesRun(t *testing.T) {
 	mockPRWhit2Reviwers()
 	assignmentService, err := NewAssignmentService(jsonResourcesPath + "config_test.json")
 	log.Printf("cargo la config --- %v", err)
+	assertNil(t, err)
 
 	assignmentService.Run()
 	log.Printf("Corrio la config --- %v", assignmentService.config)

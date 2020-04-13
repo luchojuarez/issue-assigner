@@ -2,7 +2,7 @@
     "task_source":[
         {
             "resource_type":"all_pr_from_repo",
-            "resources":["luchojuarez/crypto","luchojuarez/issue-assigner","go-resty/resty","golang/go"]
+            "resources":["luchojuarez/crypto","luchojuarez/issue-assigner","go-resty/resty"]
         }
     ],
     "users_niknames":["luchojuarez","luchojuarezml"],
