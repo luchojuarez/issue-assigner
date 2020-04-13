@@ -1,11 +1,8 @@
 package services
 
 import (
-	"fmt"
-	"net/http"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"
@@ -98,26 +95,4 @@ func TestInvalidJson(t *testing.T) {
 	simpleStringResponderForGetPR(1, "luchojuarez/issuer", `{number": 1,"title":"Title 1","body":"description 1","assignees":null,"user":{"login":"luchojuarez"},"commits": 2,"additions": 353,  "deletions": 2}`, 200, 50)
 	_, err = service.GetOpenPRs("luchojuarez/issuer")
 	assert.True(t, strings.Contains(err.Error(), "invalid status code: '500'"))
-}
-
-func simpleStringResponderForPrSearch(repoFullName, responseBody string, statusCode int, responseLag time.Duration) {
-	httpmock.RegisterResponder(
-		"GET",
-		"https://api.github.com/repos/"+repoFullName+"/pulls?status=open",
-		func(req *http.Request) (*http.Response, error) {
-			time.Sleep(responseLag * time.Millisecond)
-			resp := httpmock.NewStringResponse(statusCode, responseBody)
-			return resp, nil
-		})
-}
-
-func simpleStringResponderForGetPR(number int, repoFullName, responseBody string, statusCode int, responseLag time.Duration) {
-	httpmock.RegisterResponder(
-		"GET",
-		"https://api.github.com/repos/"+repoFullName+"/pulls/"+fmt.Sprintf("%d", number),
-		func(req *http.Request) (*http.Response, error) {
-			time.Sleep(responseLag * time.Millisecond)
-			resp := httpmock.NewStringResponse(statusCode, responseBody)
-			return resp, nil
-		})
 }

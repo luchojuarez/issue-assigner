@@ -65,17 +65,24 @@ func (this *UserService) GetUserAsinc(nickname string, topic chan string, errors
 func (this UserService) getUser(nickname string) (*models.User, error) {
 	defer TraceTime("get_user_from_api", time.Now())
 	startMillis := time.Now().UnixNano() / int64(time.Millisecond)
-	response, err := this.RestClient.
-		R().
-		//SetHeader("Authorization", "token 5de6f6012b9e2eced307e40ae3670577290a485c").
-		Get(this.GithubBaseURL + "/users/" + nickname)
+	req := this.RestClient.R()
+	if env.GetEnv().TokenManager.HasToken() {
+		req = req.SetHeader("Authorization", "token "+env.GetEnv().TokenManager.Get())
+	} else {
+		TraceInfo("Not tokent set")
+	}
+	response, err := req.Get(this.GithubBaseURL + "/users/" + nickname)
 
 	if err != nil {
 		return nil, tracerr.Wrap(err)
 	}
 
+	if response.StatusCode() == http.StatusForbidden {
+		return nil, tracerr.Errorf("Request over cuota, check github token, resource '%s'", this.GithubBaseURL+"/users/"+nickname)
+	}
+
 	if response.StatusCode() != http.StatusOK {
-		return nil, tracerr.Errorf("invalid status code: '%d' for resource '%s'", response.StatusCode(), this.GithubBaseURL+"/users/"+nickname)
+		return nil, tracerr.Errorf("invalid status code: '%d' for resource '%s','%v'", response.StatusCode(), this.GithubBaseURL+"/users/"+nickname, response.Body())
 	}
 
 	var newUser models.User

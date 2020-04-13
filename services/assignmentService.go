@@ -1,6 +1,7 @@
 package services
 
 import (
+	"log"
 	"sync"
 
 	"github.com/luchojuarez/issue-assigner/models"
@@ -29,8 +30,14 @@ func NewAssignmentService(configFilePath string) (*AssignmentService, error) {
 func (this *AssignmentService) Run() {
 	for _, currentIssue := range this.config.IssueList {
 		assignedUsers := len(currentIssue.GetAssignedUsers())
+		issueAuthor := currentIssue.GetAuthor().NickName
 		for assignedUsers < this.config.ReviewersPerIssue {
-			iddleUser := this.UserServiceInstance.GetSortedUsersByAssignations(&this.config)[0]
+			usersList := this.UserServiceInstance.GetSortedUsersByAssignations(&this.config)
+			iddleUser := usersList[0]
+			if iddleUser.NickName == issueAuthor {
+				log.Printf("owner can't revive their own issue (%s)", iddleUser.NickName)
+				iddleUser = usersList[1]
+			}
 			this.assingn(iddleUser, &currentIssue)
 			assignedUsers += 1
 		}

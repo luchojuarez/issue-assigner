@@ -3,17 +3,13 @@ package services
 import (
 	"fmt"
 	"log"
-	"net/http"
-	"reflect"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/jarcoal/httpmock"
 	"github.com/luchojuarez/issue-assigner/dao"
 	env "github.com/luchojuarez/issue-assigner/environment"
 	"github.com/luchojuarez/issue-assigner/utils"
-	"github.com/onsi/ginkgo"
 	"github.com/stretchr/testify/assert"
 	"github.com/ztrue/tracerr"
 )
@@ -149,43 +145,4 @@ func TestSortUsers(t *testing.T) {
 			assert.Fail(t, "list not sorted")
 		}
 	}
-
-}
-
-var _ = ginkgo.AfterEach(func() {
-	log.Printf("After each")
-
-	httpmock.DeactivateAndReset()
-})
-
-func mockUserFromApi(nickname, responseBody string, statusCode int, responseLag time.Duration) {
-	httpmock.RegisterResponder(
-		"GET",
-		"https://api.github.com/users/"+nickname,
-		func(req *http.Request) (*http.Response, error) {
-			time.Sleep(responseLag * time.Millisecond)
-			resp := httpmock.NewStringResponse(statusCode, responseBody)
-			return resp, nil
-		})
-}
-
-func assertNil(t *testing.T, object interface{}, msgAndArgs ...interface{}) {
-	if !isNil(object) {
-		assert.Fail(t, "Expected value must be nil.", msgAndArgs...)
-	}
-	return
-}
-
-func isNil(object interface{}) bool {
-	if object == nil {
-		return true
-	}
-
-	value := reflect.ValueOf(object)
-	kind := value.Kind()
-	if kind >= reflect.Chan && kind <= reflect.Slice && value.IsNil() {
-		return true
-	}
-
-	return false
 }
