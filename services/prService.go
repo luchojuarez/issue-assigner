@@ -95,9 +95,9 @@ func (this *PRService) GetOpenPRs(repo *models.Repo, source *models.TaskSource) 
 		}
 		if errorMessagge := source.Evaluate(newPr); errorMessagge != nil {
 			TraceInfof("pr %s(%d) excluded by '%s'", newPr.Repo.FullName, newPr.Number, *errorMessagge)
+			repo.PullRequests = append(toReturn, newPr)
+			toReturn = append(toReturn, newPr)
 		}
-		repo.PullRequests = append(toReturn, newPr)
-		toReturn = append(toReturn, newPr)
 		this.dao.SavePr(repo.FullName, newPr)
 	}
 	return toReturn, nil
