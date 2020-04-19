@@ -2,10 +2,18 @@
     "task_source":[
         {
             "resource_type":"all_pr_from_repo",
-            "resources":["luchojuarez/crypto","luchojuarez/issue-assigner","go-resty/resty"]
+            "resources":["luchojuarez/crypto","luchojuarez/issue-assigner","go-resty/resty"],
+            "exeption_rules":[
+                {
+                    "type":"by_label",
+                    "content":["not_included"]
+                },{
+                    "type":"needed_lebel",
+                    "content":["needed"]
+                }
+            ]
         }
     ],
     "users_niknames":["luchojuarez","luchojuarezml"],
-    "github_token":"token foo",
     "reviewers_per_issue":2
 }

@@ -3,7 +3,6 @@ package services
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
@@ -48,16 +47,16 @@ func NewPRService0(userDao dao.UserDaoInterface, prDao dao.PrDaoInterface) *PRSe
 	}
 }
 
-func (this *PRService) GetOpenPRsAsinc(fullRepoName string, topic chan bool, errors chan error) {
-	if _, err := this.GetOpenPRs(fullRepoName); err != nil {
+func (this *PRService) GetOpenPRsAsinc(repo *models.Repo, source *models.TaskSource, topic chan bool, errors chan error) {
+	if _, err := this.GetOpenPRs(repo, source); err != nil {
 		tracerr.Print(err)
 		errors <- err
 	}
 	topic <- true
 }
 
-func (this *PRService) GetOpenPRs(fullRepoName string) ([]*models.PR, error) {
-	prList, err := this.dao.GetPrByRepo(fullRepoName)
+func (this *PRService) GetOpenPRs(repo *models.Repo, source *models.TaskSource) ([]*models.PR, error) {
+	prList, err := this.dao.GetPrByRepo(repo.FullName)
 	if err != nil {
 		return nil, err
 	}
@@ -72,15 +71,16 @@ func (this *PRService) GetOpenPRs(fullRepoName string) ([]*models.PR, error) {
 		TraceInfo("Not tokent set")
 	}
 
-	response, err := req.Get(fmt.Sprintf(getAllPrURL, fullRepoName))
+	response, err := req.Get(fmt.Sprintf(getAllPrURL, repo.FullName))
+
 	if err != nil {
 		return nil, TraceError0(tracerr.Wrap(err))
 	}
 	if response.StatusCode() == http.StatusForbidden {
-		return nil, tracerr.Errorf("Request over cuota, check github token, resource '%s'", fmt.Sprintf(getAllPrURL, fullRepoName))
+		return nil, tracerr.Errorf("Request over cuota, check github token, resource '%s'", fmt.Sprintf(getAllPrURL, repo.FullName))
 	}
 	if response.StatusCode() != http.StatusOK {
-		return nil, TraceError0(tracerr.Errorf("invalid status code: '%d' for resource '%s'", response.StatusCode(), fmt.Sprintf(getAllPrURL, fullRepoName)))
+		return nil, TraceError0(tracerr.Errorf("invalid status code: '%d' for resource '%s'", response.StatusCode(), fmt.Sprintf(getAllPrURL, repo.FullName)))
 	}
 	searchResult := prSearchResponse{}
 	if err := json.Unmarshal([]byte(fmt.Sprintf("%s", response)), &searchResult); err != nil {
@@ -90,39 +90,42 @@ func (this *PRService) GetOpenPRs(fullRepoName string) ([]*models.PR, error) {
 	toReturn := []*models.PR{}
 
 	for _, number := range searchResult {
-		newPr, err := this.getPrByNumber(fullRepoName, number.Number)
+		newPr, err := this.getPrByNumber(repo, number.Number)
 		if err != nil {
 			return nil, TraceError0(tracerr.Wrap(err))
 		}
-		toReturn = append(toReturn, newPr)
-		this.dao.SavePr(fullRepoName, newPr)
+		if errorMessagge := source.Evaluate(newPr); errorMessagge != nil {
+			TraceInfof("pr %s(%d) excluded by '%s'", newPr.Repo.FullName, newPr.Number, *errorMessagge)
+			repo.PullRequests = append(toReturn, newPr)
+			toReturn = append(toReturn, newPr)
+		}
+		this.dao.SavePr(repo.FullName, newPr)
 	}
 	return toReturn, nil
 }
 
-func (this *PRService) GetPrByNumber(fullRepoName string, number int, dones chan bool, errors chan error) {
-	pr, err := this.dao.GetPr(fullRepoName, number)
+func (this *PRService) GetPrByNumber(repo *models.Repo, number int, dones chan bool, errors chan error) {
+	pr, err := this.dao.GetPr(repo.FullName, number)
 	if err != nil {
 		errors <- err
 		return
 	}
 	if pr != nil {
-		log.Printf("lo encontre %s/%d", fullRepoName, number)
 		dones <- true
 		return
 	}
-	pr, err = this.getPrByNumber(fullRepoName, number)
+	pr, err = this.getPrByNumber(repo, number)
 	if err != nil {
 		errors <- err
 		return
 	}
-	this.dao.SavePr(fullRepoName, pr)
+	this.dao.SavePr(repo.FullName, pr)
 	dones <- true
 	return
 }
 
-func (this *PRService) getPrByNumber(fullRepoName string, number int) (*models.PR, error) {
-	newPr := models.PR{}
+func (this *PRService) getPrByNumber(repo *models.Repo, number int) (*models.PR, error) {
+	newPr := models.PR{Repo: repo}
 	defer newPr.SetEndTime(time.Now())
 	defer TraceTime("getPrByNumber", time.Now())
 
@@ -132,13 +135,13 @@ func (this *PRService) getPrByNumber(fullRepoName string, number int) (*models.P
 	} else {
 		TraceInfo("Not tokent set")
 	}
-	response, err := req.Get(fmt.Sprintf(getPrByNumberURL, fullRepoName, number))
+	response, err := req.Get(fmt.Sprintf(getPrByNumberURL, repo.FullName, number))
 
 	if err != nil {
 		return nil, TraceError0(tracerr.Wrap(err))
 	}
 	if response.StatusCode() != http.StatusOK {
-		return nil, TraceError0(tracerr.Errorf("invalid status code: '%d' for resource '%s'", response.StatusCode(), fmt.Sprintf(getAllPrURL, fullRepoName)))
+		return nil, TraceError0(tracerr.Errorf("invalid status code: '%d' for resource '%s'", response.StatusCode(), fmt.Sprintf(getAllPrURL, repo.FullName)))
 	}
 
 	if err := json.Unmarshal(([]byte(fmt.Sprintf("%s", response))), &newPr); err != nil {
@@ -157,9 +160,9 @@ func (this *PRService) getPrByNumber(fullRepoName string, number int) (*models.P
 		if err != nil {
 			return nil, TraceError0(tracerr.New(fmt.Sprintf("cat get user info '%s' '%v'", userName, err)))
 		}
-		TraceInfof("OLD assignation found. repo:'%s', PR(%d) '%s' to user '%s'", fullRepoName, newPr.Number, newPr.Body, fetchedUser.NickName)
 		fetchedUser.AssingIssue(&newPr)
 		newPr.AssignedUsers = append(newPr.AssignedUsers, fetchedUser)
+		TraceInfof("OLD assignation found. repo:'%s', PR(%d) '%s' to user '%s'", repo.FullName, newPr.Number, newPr.Body, fetchedUser.NickName)
 	}
 
 	return &newPr, nil

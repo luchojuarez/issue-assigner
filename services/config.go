@@ -20,9 +20,8 @@ const (
 
 type JsonConfig struct {
 	UsersNicknames    []string             `json:"users_niknames"`
-	GithubToken       string               `json:"github_token"`
 	ReviewersPerIssue int                  `json:"reviewers_per_issue"`
-	TaskSoruce        []*models.TaskSoruce `json:"task_source"`
+	TaskSoruce        []*models.TaskSource `json:"task_source"`
 	Users             []*models.User
 	taskLoaders       []TaskLoader
 	IssueList         []models.Issue
@@ -96,6 +95,9 @@ func (this *JsonConfig) loadUsers(mainChan chan bool) error {
 }
 
 func (this *JsonConfig) loadTasks(mainChan chan bool) error {
+	if len(this.TaskSoruce) == 0 {
+		return tracerr.New("no task found, JSON input are rigth?")
+	}
 	taskQueue := make(chan bool, 100)
 	errorList := make(chan error, 100)
 	totalTask := 0
@@ -107,12 +109,15 @@ func (this *JsonConfig) loadTasks(mainChan chan bool) error {
 			currentTask = &AllPrTaskLoader{
 				RepoNames: taskSoruce.Resources,
 				prService: NewPRService(),
+				source:    taskSoruce,
 			}
 		case "pr_list":
 			currentTask = &PrListTaskLoader{
 				PrList:    taskSoruce.Resources,
 				prService: NewPRService(),
 			}
+		default:
+			return tracerr.New("invalid task type: " + taskSoruce.ResourceType)
 		}
 		totalTask += currentTask.GetTotalTask()
 		go currentTask.GetAllTask(taskQueue, errorList)
