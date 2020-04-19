@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/luchojuarez/issue-assigner/models"
+	"github.com/ztrue/tracerr"
 )
 
 type AssignmentService struct {
@@ -27,7 +28,10 @@ func NewAssignmentService(configFilePath string) (*AssignmentService, error) {
 	return &service, nil
 }
 
-func (this *AssignmentService) Run() {
+func (this *AssignmentService) Run() error {
+	if this == nil {
+		return tracerr.New("Cant load config...")
+	}
 	for _, currentIssue := range this.config.IssueList {
 		assignedUsers := len(currentIssue.GetAssignedUsers())
 		issueAuthor := currentIssue.GetAuthor().NickName
@@ -42,6 +46,7 @@ func (this *AssignmentService) Run() {
 			assignedUsers += 1
 		}
 	}
+	return nil
 }
 
 func (this *AssignmentService) assingn(user *models.User, issue *models.Issue) {

@@ -126,16 +126,13 @@ func TestSortUsers(t *testing.T) {
 	simpleStringResponderForGetPR(2, "luchojuarez/issue", issue2, 200, 0)
 	simpleStringResponderForGetPR(3, "luchojuarez/issue", issue3, 200, 0)
 
-	config, err := load("https://api.github.com", jsonResourcesPath+"a_lot_of_users.json")
-	tracerr.Print(err)
+	service, _ := NewAssignmentService(jsonResourcesPath + "a_lot_of_users.json")
+	service.Run()
+	config := service.config
 	dao := dao.NewLocalUserDao()
 	userService := NewUserService(dao)
 
-	u, _ := userService.GetUser("user1")
-
-	assert.Equal(t, adds+dels, u.AssignedTaskValue)
-
-	list := userService.GetSortedUsersByAssignations(config)
+	list := userService.GetSortedUsersByAssignations(&config)
 	assert.Equal(t, 4, len(list))
 	for i, user := range list {
 		if i == len(list)-1 {

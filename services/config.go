@@ -95,6 +95,9 @@ func (this *JsonConfig) loadUsers(mainChan chan bool) error {
 }
 
 func (this *JsonConfig) loadTasks(mainChan chan bool) error {
+	if len(this.TaskSoruce) == 0 {
+		return tracerr.New("no task found, JSON input are rigth?")
+	}
 	taskQueue := make(chan bool, 100)
 	errorList := make(chan error, 100)
 	totalTask := 0
@@ -112,6 +115,8 @@ func (this *JsonConfig) loadTasks(mainChan chan bool) error {
 				PrList:    taskSoruce.Resources,
 				prService: NewPRService(),
 			}
+		default:
+			return tracerr.New("invalid task type: " + taskSoruce.ResourceType)
 		}
 		totalTask += currentTask.GetTotalTask()
 		go currentTask.GetAllTask(taskQueue, errorList)

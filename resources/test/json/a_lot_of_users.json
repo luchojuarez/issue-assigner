@@ -1,4 +1,10 @@
 {
-  "repos_full_names":["luchojuarez/crypto","luchojuarez/issue"],
-  "users_niknames":["user1","user2","user3","user4"]
+    "task_source":[
+        {
+            "resource_type":"all_pr_from_repo",
+            "resources":["luchojuarez/crypto","luchojuarez/issue"]
+        }
+    ],
+    "users_niknames":["user1","user2","user3","user4"],
+    "reviewers_per_issue":2
 }
