@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	env "github.com/luchojuarez/issue-assigner/environment"
+	"github.com/luchojuarez/issue-assigner/models"
 )
 
 func TestGetAllPRSuccesCase(t *testing.T) {
@@ -23,7 +24,8 @@ func TestGetAllPRSuccesCase(t *testing.T) {
 	simpleStringResponderForGetPR(1, "luchojuarez/issuer", `{"number": 1,"title":"Title 1","body":"description 1","assignees":null,"user":{"login":"luchojuarez"},"commits": 2,"additions": 353,  "deletions": 2}`, 200, 50)
 	simpleStringResponderForGetPR(2, "luchojuarez/issuer", `{"number": 2,"title":"Title 2","body":"description 2","assignees":[{"login":"luchojuarez"}],"user":{"login":"luchojuarez"},"commits": 2,"additions": 353,  "deletions": 2}`, 200, 40)
 
-	prList, _ := service.GetOpenPRs("luchojuarez/issuer")
+	repo := models.Repo{FullName: "luchojuarez/issuer"}
+	prList, _ := service.GetOpenPRs(&repo, nil)
 
 	assert.Equal(t, 2, len(prList))
 
@@ -50,7 +52,8 @@ func TestInvalidApiSCResponse2(t *testing.T) {
 
 	simpleStringResponderForPrSearch("luchojuarez/issuer", `[{"number": 1},{"number": 2}]`, 500, 0)
 
-	_, err := service.GetOpenPRs("luchojuarez/issuer")
+	repo := models.Repo{FullName: "luchojuarez/issuer"}
+	_, err := service.GetOpenPRs(&repo, nil)
 
 	assert.True(t, strings.Contains(err.Error(), "invalid status code: '500'"))
 }
@@ -61,8 +64,8 @@ func TestRestErrorListAll(t *testing.T) {
 	httpmock.Reset()
 	// new service instance
 	service := NewPRService()
-
-	_, err := service.GetOpenPRs("luchojuarez/issuer")
+	repo := models.Repo{FullName: "luchojuarez/issuer"}
+	_, err := service.GetOpenPRs(&repo, nil)
 
 	assert.Equal(t, "Get https://api.github.com/repos/luchojuarez/issuer/pulls?status=open: no responder found", err.Error())
 }
@@ -76,7 +79,8 @@ func TestRestErrorGetPR(t *testing.T) {
 
 	simpleStringResponderForPrSearch("luchojuarez/issuer", `[{"number": 1},{"number": 2}]`, 500, 0)
 
-	_, err := service.GetOpenPRs("luchojuarez/issuer")
+	repo := models.Repo{FullName: "luchojuarez/issuer"}
+	_, err := service.GetOpenPRs(&repo, nil)
 
 	assert.True(t, strings.Contains(err.Error(), "invalid status code: '500'"))
 }
@@ -87,12 +91,13 @@ func TestInvalidJson(t *testing.T) {
 
 	httpmock.Reset()
 	simpleStringResponderForPrSearch("luchojuarez/issuer", `[{"number": 1,{"number": 2}]`, 500, 0)
-	_, err := service.GetOpenPRs("luchojuarez/issuer")
+	repo := models.Repo{FullName: "luchojuarez/issuer"}
+	_, err := service.GetOpenPRs(&repo, nil)
 	assert.True(t, strings.Contains(err.Error(), "invalid status code: '500'"))
 
 	httpmock.Reset()
 	simpleStringResponderForPrSearch("luchojuarez/issuer", `[{"number": 1},{"number": 2}]`, 500, 0)
 	simpleStringResponderForGetPR(1, "luchojuarez/issuer", `{number": 1,"title":"Title 1","body":"description 1","assignees":null,"user":{"login":"luchojuarez"},"commits": 2,"additions": 353,  "deletions": 2}`, 200, 50)
-	_, err = service.GetOpenPRs("luchojuarez/issuer")
+	_, err = service.GetOpenPRs(&repo, nil)
 	assert.True(t, strings.Contains(err.Error(), "invalid status code: '500'"))
 }

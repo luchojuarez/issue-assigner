@@ -2,7 +2,16 @@
     "task_source":[
         {
             "resource_type":"all_pr_from_repo",
-            "resources":["luchojuarez/crypto","luchojuarez/issue-assigner"]
+            "resources":["luchojuarez/crypto","luchojuarez/issue-assigner"],
+            "exeption_rules":[
+                {
+                    "type":"by_label",
+                    "content":["exclude_me_please"]
+                },{
+                    "type":"needed_lebel",
+                    "content":["needed"]
+                }
+            ]
         },
         {
             "resource_type":"pr_list",

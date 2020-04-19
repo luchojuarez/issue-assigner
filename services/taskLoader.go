@@ -5,6 +5,8 @@ import (
 	"log"
 	"strconv"
 	"strings"
+
+	"github.com/luchojuarez/issue-assigner/models"
 )
 
 type TaskLoader interface {
@@ -18,6 +20,7 @@ type TaskLoader interface {
 type AllPrTaskLoader struct {
 	RepoNames []string
 	prService *PRService
+	source    *models.TaskSource
 }
 type PrListTaskLoader struct {
 	PrList    []string
@@ -35,8 +38,9 @@ func (this *PrListTaskLoader) GetTotalTask() int {
 func (this *AllPrTaskLoader) GetAllTask(dones chan bool, errors chan error) {
 	for _, currentRepoName := range this.RepoNames {
 		log.Printf("largo %s", currentRepoName)
+		repo := models.Repo{FullName: currentRepoName}
 
-		this.prService.GetOpenPRsAsinc(currentRepoName, dones, errors)
+		this.prService.GetOpenPRsAsinc(&repo, this.source, dones, errors)
 	}
 }
 
@@ -45,6 +49,7 @@ func (this *PrListTaskLoader) GetAllTask(dones chan bool, errors chan error) {
 		repoName := fmt.Sprintf("%s/%s", strings.Split(currentRepoName, "/")[0], strings.Split(currentRepoName, "/")[1])
 		prNumber, _ := strconv.Atoi(strings.Split(currentRepoName, "/")[2])
 		log.Printf("largo %s (%s/%d)", currentRepoName, repoName, prNumber)
-		this.prService.GetPrByNumber(repoName, prNumber, dones, errors)
+		repo := models.Repo{FullName: repoName}
+		this.prService.GetPrByNumber(&repo, prNumber, dones, errors)
 	}
 }

@@ -16,7 +16,6 @@ func TestSuccesRun(t *testing.T) {
 	defer PrintAndClearWhithBeginTime("../out/success_run.log", time.Now())
 
 	mockConfigSuccessCase()
-	mockPRWhit2Reviwers()
 	assignmentService, err := NewAssignmentService(jsonResourcesPath + "config_test.json")
 	log.Printf("cargo la config --- %v", err)
 	assertNil(t, err)

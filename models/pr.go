@@ -14,6 +14,7 @@ type PR struct {
 	Body          string        `json:"body"`
 	Assignees     []interface{} `json:"assignees"`
 	Repo          *Repo         `json:"repo"`
+	Labels        []string      `json:"labels,omitempty"`
 	AssignedUsers []*User
 	AssigneesSize int
 	User          *User `json:"user"`
@@ -22,7 +23,7 @@ type PR struct {
 }
 
 func (this *PR) Weight() int {
-	return this.Additions + this.Deletions
+	return this.Additions*2 + this.Deletions
 }
 
 func (this *PR) GetAssignedUsers() []*User {
@@ -37,7 +38,7 @@ func (this *PR) Assing(u *User) {
 	this.AssignedUsers = append(this.AssignedUsers, u)
 }
 func (this *PR) ToString() string {
-	return fmt.Sprintf("PR %s(%d) by '%s' weight: %d", "this.Repo.Name", this.Number, this.User.NickName, this.Weight())
+	return fmt.Sprintf("PR %v(%d) by %s weight: %d", this.Repo.FullName, this.Number, this.User.NickName, this.Weight())
 }
 
 func (this *PR) SetEndTime(initTime time.Time) {
