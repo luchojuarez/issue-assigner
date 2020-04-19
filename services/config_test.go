@@ -36,7 +36,6 @@ func TestSuccess(t *testing.T) {
 	assert.Equal(t, "luchojuarez2", config.Users[1].NickName)
 
 	// test teken
-	assert.Equal(t, "token foo", config.GithubToken)
 	log.Printf("total time sync %d", time.Now().UnixNano()/int64(time.Millisecond)-init)
 }
 

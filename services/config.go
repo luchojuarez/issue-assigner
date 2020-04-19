@@ -20,7 +20,6 @@ const (
 
 type JsonConfig struct {
 	UsersNicknames    []string             `json:"users_niknames"`
-	GithubToken       string               `json:"github_token"`
 	ReviewersPerIssue int                  `json:"reviewers_per_issue"`
 	TaskSoruce        []*models.TaskSoruce `json:"task_source"`
 	Users             []*models.User
