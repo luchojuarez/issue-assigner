@@ -72,6 +72,7 @@ func (this *PRService) GetOpenPRs(repo *models.Repo, source *models.TaskSource) 
 	}
 
 	response, err := req.Get(fmt.Sprintf(getAllPrURL, repo.FullName))
+
 	if err != nil {
 		return nil, TraceError0(tracerr.Wrap(err))
 	}
