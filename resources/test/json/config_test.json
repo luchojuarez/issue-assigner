@@ -9,6 +9,7 @@
                     "content":["exclude_me_please"]
                 },{
                     "type":"needed_lebel",
+                    "apply_to":["luchojuarez/issue-assigner"],
                     "content":["needed"]
                 }
             ]

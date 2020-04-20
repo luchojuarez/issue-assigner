@@ -9,6 +9,7 @@
                     "content":["not_included"]
                 },{
                     "type":"needed_lebel",
+                    "apply_to":["luchojuarez/crypto"],
                     "content":["needed"]
                 }
             ]

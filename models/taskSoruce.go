@@ -3,10 +3,14 @@ package models
 import (
 	"fmt"
 	"log"
+
+	"github.com/luchojuarez/issue-assigner/utils"
 )
 
 type ExeptionRules struct {
 	Type    string   `json:"type"`
+	ApplyTo []string `json:"apply_to,omitempty"`
+	ExeptTo []string `json:"exept_to,omitempty"`
 	Content []string `json:"content"`
 }
 type TaskSource struct {
@@ -42,11 +46,19 @@ func (this *ExeptionRules) exclude(pr *PR) *string {
 func (this *ExeptionRules) excludedByLable(pr *PR) *string {
 	for _, currentL := range this.Content {
 		for _, prLabels := range pr.Labels {
-			if currentL == prLabels {
-				errorMessagge := fmt.Sprintf("%s excluded reason '%s' by '%s'", pr.ToString(), currentL, this.Type)
-				log.Print(errorMessagge)
-				return &errorMessagge
+			if currentL != prLabels {
+				continue
 			}
+			//chek exeptirions rules
+			if !utils.ContainsAny(this.ApplyTo, pr.Labels) {
+				continue
+			}
+			if utils.ContainsAny(this.ExeptTo, pr.Labels) {
+				continue
+			}
+			errorMessagge := fmt.Sprintf("%s excluded reason '%s' by '%s'", pr.ToString(), currentL, this.Type)
+			log.Print(errorMessagge)
+			return &errorMessagge
 		}
 	}
 	return nil
@@ -54,6 +66,9 @@ func (this *ExeptionRules) excludedByLable(pr *PR) *string {
 
 //Exclude current issue if missing lables attached in "content"
 func (this *ExeptionRules) excludedByLableNeeded(pr *PR) *string {
+	if utils.Contains(this.ApplyTo, pr.Repo.FullName) {
+		return nil
+	}
 	found := false
 
 	for _, currentL := range this.Content {
